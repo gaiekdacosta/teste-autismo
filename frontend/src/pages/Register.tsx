@@ -13,6 +13,7 @@ import {
 type FormState = {
     name: string
     email: string
+    phone: string
     password: string
     confirmPassword: string
 }
@@ -20,8 +21,19 @@ type FormState = {
 const initialFormState: FormState = {
     name: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
+}
+
+function normalizePhone(phone: string) {
+    const onlyNumbers = phone.replace(/\D/g, '')
+
+    if (onlyNumbers.startsWith('55')) {
+        return `+${onlyNumbers}`
+    }
+
+    return `+55${onlyNumbers}`
 }
 
 export function RegisterPage() {
@@ -35,9 +47,13 @@ export function RegisterPage() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
     const isFormValid = useMemo(() => {
+        const phoneNumbers = form.phone.replace(/\D/g, '')
+
         return (
             form.name.trim().length >= 3 &&
             /\S+@\S+\.\S+/.test(form.email) &&
+            phoneNumbers.length >= 10 &&
+            phoneNumbers.length <= 13 &&
             form.password.trim().length >= 6 &&
             form.password === form.confirmPassword
         )
@@ -46,6 +62,8 @@ export function RegisterPage() {
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
 
+        const phoneNumbers = form.phone.replace(/\D/g, '')
+
         if (form.name.trim().length < 3) {
             setErrorMessage('Informe um nome com pelo menos 3 caracteres.')
             return
@@ -53,6 +71,11 @@ export function RegisterPage() {
 
         if (!/\S+@\S+\.\S+/.test(form.email)) {
             setErrorMessage('Informe um e-mail válido.')
+            return
+        }
+
+        if (phoneNumbers.length < 10 || phoneNumbers.length > 13) {
+            setErrorMessage('Informe um número de celular válido.')
             return
         }
 
@@ -70,13 +93,26 @@ export function RegisterPage() {
             setIsSubmitting(true)
             setErrorMessage('')
 
-            await registerWithPassword({
+            const response = await registerWithPassword({
                 name: form.name.trim(),
                 email: form.email.trim(),
+                phone: normalizePhone(form.phone),
                 password: form.password,
             })
 
-            navigate('/dashboard')
+            if (response.tokens?.accessToken) {
+                navigate('/home', { replace: true })
+                return
+            }
+
+            navigate('/', {
+                replace: true,
+                state: {
+                    registeredEmail: form.email.trim(),
+                    registrationMessage:
+                        'Conta criada. Verifique seu e-mail para confirmar o cadastro antes de entrar.',
+                },
+            })
         } catch (error) {
             setErrorMessage(
                 error instanceof Error ? error.message : 'Não foi possível criar a conta.'
@@ -114,10 +150,6 @@ export function RegisterPage() {
                     <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--foreground)]">
                         Criar conta
                     </h1>
-
-                    <p className="mt-2 font-medium text-[var(--primary)]">
-                        Dr. Tiago Marinho
-                    </p>
 
                     <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
                         Cadastre-se para acessar avaliações e agendamentos.
@@ -157,6 +189,25 @@ export function RegisterPage() {
                                 setForm((old) => ({
                                     ...old,
                                     email: e.target.value,
+                                }))
+                            }
+                            className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--primary)]"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-[var(--foreground)]">
+                            Celular
+                        </label>
+
+                        <input
+                            type="tel"
+                            value={form.phone}
+                            placeholder="(85) 99999-9999"
+                            onChange={(e) =>
+                                setForm((old) => ({
+                                    ...old,
+                                    phone: e.target.value,
                                 }))
                             }
                             className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--primary)]"
@@ -217,7 +268,9 @@ export function RegisterPage() {
                                 onClick={() => setShowConfirmPassword((old) => !old)}
                                 className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center text-[var(--muted)] transition hover:text-[var(--foreground)]"
                                 aria-label={
-                                    showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'
+                                    showConfirmPassword
+                                        ? 'Ocultar confirmação de senha'
+                                        : 'Mostrar confirmação de senha'
                                 }
                             >
                                 {showConfirmPassword ? <FiEye size={18} /> : <FiEyeOff size={18} />}

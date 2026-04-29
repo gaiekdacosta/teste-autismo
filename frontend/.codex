@@ -1,0 +1,68 @@
+# Projeto
+Frontend de sistema de triagem de autismo.
+Aplicação focada em acessibilidade, usabilidade e clareza de interface.
+
+# Stack
+- React com Typescript
+- TailwindCSS
+- Axios para requisições HTTP
+
+# Padrões de arquitetura
+- Componentes funcionais (React Hooks)
+- Separar lógica de UI (hooks/custom hooks)
+- Requisições HTTP centralizadas em /services
+- Evitar lógica complexa dentro de componentes
+
+# Regras de código
+- Usar async/await (não usar .then)
+- Evitar ternários aninhados
+- Nomes de variáveis descritivos
+- Preferir funções pequenas e reutilizáveis
+- Tratar erros de forma explícita (try/catch)
+- Não usar any (tipagem forte sempre)
+
+# Acessibilidade (ESSENCIAL para esse projeto)
+- Sempre usar atributos ARIA quando necessário
+- Garantir navegação por teclado
+- Inputs devem ter labels claros
+- Evitar apenas cor como forma de informação
+
+# UI/UX
+- Interfaces simples e sem excesso de informação
+- Feedback visual para ações do usuário
+- Estados de loading e erro obrigatórios
+- Evitar mudanças bruscas de layout
+- Usar componentes base do sistema (Button, Input, Card)
+
+# Estrutura
+/src
+  /components
+  /pages
+  /hooks
+  /services
+  /types
+  /utils
+
+# API
+- Usar Axios com instância configurada
+- Centralizar baseURL
+- Tratar erros de API globalmente
+
+# Comandos
+- npm run dev
+- npm run build
+- npm test
+
+# Testes
+- Criar testes para novas features
+- Testar estados principais (loading, erro, sucesso)
+
+# Regras importantes
+- Não quebrar funcionalidades existentes
+- Manter consistência visual com componentes já existentes
+- Reutilizar componentes antes de criar novos
+- Sempre explicar mudanças estruturais grandes
+
+# Evitar
+- Duplicação de código
+- useEffect desnecessário

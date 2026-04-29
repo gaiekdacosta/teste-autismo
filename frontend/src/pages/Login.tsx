@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
 import { FcGoogle } from 'react-icons/fc'
 
@@ -17,11 +17,24 @@ const initialFormState: FormState = {
     password: '',
 }
 
+type LoginLocationState = {
+    registeredEmail?: string
+    registrationMessage?: string
+}
+
 export function LoginPage() {
     const navigate = useNavigate()
+    const location = useLocation()
+    const locationState = location.state as LoginLocationState | null
 
-    const [form, setForm] = useState<FormState>(initialFormState)
+    const [form, setForm] = useState<FormState>({
+        ...initialFormState,
+        email: locationState?.registeredEmail ?? '',
+    })
     const [errorMessage, setErrorMessage] = useState('')
+    const [successMessage, setSuccessMessage] = useState(
+        locationState?.registrationMessage ?? ''
+    )
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isGoogleLoading, setIsGoogleLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
@@ -29,6 +42,20 @@ export function LoginPage() {
     const isFormValid = useMemo(() => {
         return /\S+@\S+\.\S+/.test(form.email) && form.password.trim().length >= 6
     }, [form])
+
+    useEffect(() => {
+        if (!locationState) {
+            return
+        }
+
+        setForm((current) => ({
+            ...current,
+            email: locationState.registeredEmail ?? current.email,
+        }))
+        setSuccessMessage(locationState.registrationMessage ?? '')
+
+        navigate(location.pathname, { replace: true, state: null })
+    }, [location.pathname, locationState, navigate])
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
@@ -41,13 +68,14 @@ export function LoginPage() {
         try {
             setIsSubmitting(true)
             setErrorMessage('')
+            setSuccessMessage('')
 
             await loginWithPassword({
                 email: form.email.trim(),
                 password: form.password,
             })
 
-            navigate('/dashboard')
+            navigate('/home')
         } catch (error) {
             setErrorMessage(
                 error instanceof Error
@@ -77,7 +105,7 @@ export function LoginPage() {
     }
 
     return (
-        <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-6 py-10">
+        <main className="flex min-h-screen items-center justify-center bg-(--background) px-6 py-10">
             <section className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-2xl">
                 <div className="mb-8 text-center">
                     <span className="inline-block rounded-full border border-[var(--border)] bg-[var(--surface-secondary)] px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-[var(--muted)]">
@@ -85,7 +113,7 @@ export function LoginPage() {
                     </span>
 
                     <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--foreground)]">
-                        Teste de Autismo
+                        Laudo de Autismo
                     </h1>
 
                     <p className="mt-2  font-medium text-[var(--primary)]">
@@ -150,6 +178,12 @@ export function LoginPage() {
                     {errorMessage && (
                         <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                             {errorMessage}
+                        </div>
+                    )}
+
+                    {successMessage && (
+                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                            {successMessage}
                         </div>
                     )}
 
