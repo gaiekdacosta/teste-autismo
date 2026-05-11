@@ -14,6 +14,8 @@ type FormState = {
     name: string
     email: string
     phone: string
+    birthDate: string
+    gender: string
     password: string
     confirmPassword: string
 }
@@ -22,9 +24,16 @@ const initialFormState: FormState = {
     name: '',
     email: '',
     phone: '',
+    birthDate: '',
+    gender: '',
     password: '',
     confirmPassword: '',
 }
+
+const fieldClassName =
+    'h-14 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 text-[var(--foreground)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)]'
+
+const passwordFieldClassName = `${fieldClassName} pr-12`
 
 function normalizePhone(phone: string) {
     const onlyNumbers = phone.replace(/\D/g, '')
@@ -54,6 +63,8 @@ export function RegisterPage() {
             /\S+@\S+\.\S+/.test(form.email) &&
             phoneNumbers.length >= 10 &&
             phoneNumbers.length <= 13 &&
+            form.birthDate !== '' &&
+            form.gender !== '' &&
             form.password.trim().length >= 6 &&
             form.password === form.confirmPassword
         )
@@ -79,6 +90,16 @@ export function RegisterPage() {
             return
         }
 
+        if (form.birthDate === '') {
+            setErrorMessage('Informe a data de nascimento.')
+            return
+        }
+
+        if (form.gender === '') {
+            setErrorMessage('Informe o gênero.')
+            return
+        }
+
         if (form.password.trim().length < 6) {
             setErrorMessage('A senha deve ter pelo menos 6 caracteres.')
             return
@@ -97,6 +118,8 @@ export function RegisterPage() {
                 name: form.name.trim(),
                 email: form.email.trim(),
                 phone: normalizePhone(form.phone),
+                birthDate: form.birthDate,
+                gender: form.gender,
                 password: form.password,
             })
 
@@ -140,180 +163,249 @@ export function RegisterPage() {
     }
 
     return (
-        <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-6 py-10">
-            <section className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-2xl">
-                <div className="mb-8 text-center">
-                    <span className="inline-block rounded-full border border-[var(--border)] bg-[var(--surface-secondary)] px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-[var(--muted)]">
+        <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4 py-8 sm:px-6 lg:px-8">
+            <section className="grid w-full max-w-6xl gap-8 rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl sm:p-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-12 lg:p-10 xl:p-12">
+                <div className="text-center lg:flex lg:flex-col lg:justify-center lg:text-left">
+                    <span className="mx-auto inline-flex w-fit rounded-full border border-[var(--border)] bg-[var(--surface-secondary)] px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-[var(--muted)] lg:mx-0">
                         Plataforma clínica
                     </span>
 
-                    <h1 className="mt-4 text-3xl font-bold tracking-tight text-[var(--foreground)]">
+                    <h1 className="mt-5 text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl">
                         Criar conta
                     </h1>
 
                     <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
                         Cadastre-se para acessar avaliações e agendamentos.
                     </p>
+
+                    <p className="mx-auto mt-6 max-w-xl text-sm leading-relaxed text-[var(--muted)] lg:mx-0">
+                        Nossa plataforma oferece suporte especializado para avaliações clínicas e acompanhamento personalizado. Com ferramentas intuitivas e profissionais qualificados, facilitamos o acesso a cuidados essenciais com segurança e privacidade.
+                    </p>
+
+                    <ul className="mx-auto mt-6 max-w-xl space-y-3 text-left text-sm text-[var(--muted)] lg:mx-0">
+                        <li className="flex items-center gap-2">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[var(--primary)]"></span>
+                            Avaliações clínicas especializadas
+                        </li>
+                        <li className="flex items-center gap-2">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[var(--primary)]"></span>
+                            Agendamento simplificado
+                        </li>
+                        <li className="flex items-center gap-2">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[var(--primary)]"></span>
+                            Acompanhamento personalizado
+                        </li>
+                    </ul>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-[var(--foreground)]">
-                            Nome completo
-                        </label>
+                <div className="w-full">
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div className="grid gap-5 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-[var(--foreground)]">
+                                    Nome completo
+                                </label>
 
-                        <input
-                            type="text"
-                            value={form.name}
-                            placeholder="Seu nome"
-                            onChange={(e) =>
-                                setForm((old) => ({
-                                    ...old,
-                                    name: e.target.value,
-                                }))
-                            }
-                            className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--primary)]"
-                        />
-                    </div>
+                                <input
+                                    type="text"
+                                    value={form.name}
+                                    placeholder="Seu nome completo"
+                                    onChange={(e) =>
+                                        setForm((old) => ({
+                                            ...old,
+                                            name: e.target.value,
+                                        }))
+                                    }
+                                    className={fieldClassName}
+                                />
+                            </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-[var(--foreground)]">
-                            E-mail
-                        </label>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-[var(--foreground)]">
+                                    E-mail
+                                </label>
 
-                        <input
-                            type="email"
-                            value={form.email}
-                            placeholder="Seu e-mail"
-                            onChange={(e) =>
-                                setForm((old) => ({
-                                    ...old,
-                                    email: e.target.value,
-                                }))
-                            }
-                            className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--primary)]"
-                        />
-                    </div>
+                                <input
+                                    type="email"
+                                    value={form.email}
+                                    placeholder="Seu e-mail"
+                                    onChange={(e) =>
+                                        setForm((old) => ({
+                                            ...old,
+                                            email: e.target.value,
+                                        }))
+                                    }
+                                    className={fieldClassName}
+                                />
+                            </div>
+                        </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-[var(--foreground)]">
-                            Celular
-                        </label>
+                        <div className="grid gap-5 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-[var(--foreground)]">
+                                    Celular
+                                </label>
 
-                        <input
-                            type="tel"
-                            value={form.phone}
-                            placeholder="(85) 99999-9999"
-                            onChange={(e) =>
-                                setForm((old) => ({
-                                    ...old,
-                                    phone: e.target.value,
-                                }))
-                            }
-                            className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--primary)]"
-                        />
-                    </div>
+                                <input
+                                    type="tel"
+                                    value={form.phone}
+                                    placeholder="(85) 99999-9999"
+                                    onChange={(e) =>
+                                        setForm((old) => ({
+                                            ...old,
+                                            phone: e.target.value,
+                                        }))
+                                    }
+                                    className={fieldClassName}
+                                />
+                            </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-[var(--foreground)]">
-                            Senha
-                        </label>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-[var(--foreground)]">
+                                    Data de nascimento
+                                </label>
 
-                        <div className="relative">
-                            <input
-                                type={showPassword ? 'text' : 'password'}
-                                value={form.password}
-                                placeholder="Crie uma senha"
+                                <input
+                                    type="date"
+                                    value={form.birthDate}
+                                    onChange={(e) =>
+                                        setForm((old) => ({
+                                            ...old,
+                                            birthDate: e.target.value,
+                                        }))
+                                    }
+                                    className={fieldClassName}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-[var(--foreground)]">
+                                Gênero
+                            </label>
+
+                            <select
+                                value={form.gender}
                                 onChange={(e) =>
                                     setForm((old) => ({
                                         ...old,
-                                        password: e.target.value,
+                                        gender: e.target.value,
                                     }))
                                 }
-                                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-3 pr-12 text-[var(--foreground)] outline-none transition focus:border-[var(--primary)]"
-                            />
-
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword((old) => !old)}
-                                className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center text-[var(--muted)] transition hover:text-[var(--foreground)]"
-                                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                                className={fieldClassName}
                             >
-                                {showPassword ? <FiEye size={18} /> : <FiEyeOff size={18} />}
-                            </button>
+                                <option value="">Selecione</option>
+                                <option value="masculino">Masculino</option>
+                                <option value="feminino">Feminino</option>
+                                <option value="outro">Outro</option>
+                            </select>
                         </div>
-                    </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-[var(--foreground)]">
-                            Confirmar senha
-                        </label>
+                        <div className="grid gap-5 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-[var(--foreground)]">
+                                    Senha
+                                </label>
 
-                        <div className="relative">
-                            <input
-                                type={showConfirmPassword ? 'text' : 'password'}
-                                value={form.confirmPassword}
-                                placeholder="Repita a senha"
-                                onChange={(e) =>
-                                    setForm((old) => ({
-                                        ...old,
-                                        confirmPassword: e.target.value,
-                                    }))
-                                }
-                                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-3 pr-12 text-[var(--foreground)] outline-none transition focus:border-[var(--primary)]"
-                            />
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={form.password}
+                                        placeholder="Crie uma senha"
+                                        onChange={(e) =>
+                                            setForm((old) => ({
+                                                ...old,
+                                                password: e.target.value,
+                                            }))
+                                        }
+                                        className={passwordFieldClassName}
+                                    />
 
-                            <button
-                                type="button"
-                                onClick={() => setShowConfirmPassword((old) => !old)}
-                                className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center text-[var(--muted)] transition hover:text-[var(--foreground)]"
-                                aria-label={
-                                    showConfirmPassword
-                                        ? 'Ocultar confirmação de senha'
-                                        : 'Mostrar confirmação de senha'
-                                }
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword((old) => !old)}
+                                        className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center justify-center text-[var(--muted)] transition hover:text-[var(--foreground)]"
+                                        aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                                    >
+                                        {showPassword ? <FiEye size={18} /> : <FiEyeOff size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-[var(--foreground)]">
+                                    Confirmar senha
+                                </label>
+
+                                <div className="relative">
+                                    <input
+                                        type={showConfirmPassword ? 'text' : 'password'}
+                                        value={form.confirmPassword}
+                                        placeholder="Repita a senha"
+                                        onChange={(e) =>
+                                            setForm((old) => ({
+                                                ...old,
+                                                confirmPassword: e.target.value,
+                                            }))
+                                        }
+                                        className={passwordFieldClassName}
+                                    />
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword((old) => !old)}
+                                        className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center justify-center text-[var(--muted)] transition hover:text-[var(--foreground)]"
+                                        aria-label={
+                                            showConfirmPassword
+                                                ? 'Ocultar confirmação de senha'
+                                                : 'Mostrar confirmação de senha'
+                                        }
+                                    >
+                                        {showConfirmPassword ? <FiEye size={18} /> : <FiEyeOff size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {errorMessage && (
+                            <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                                {errorMessage}
+                            </div>
+                        )}
+
+                        <div className="space-y-4 pt-1">
+                            <Button
+                                type="submit"
+                                disabled={!isFormValid || isSubmitting}
+                                className="h-12 w-full"
                             >
-                                {showConfirmPassword ? <FiEye size={18} /> : <FiEyeOff size={18} />}
-                            </button>
+                                {isSubmitting ? 'Criando conta...' : 'Criar conta'}
+                            </Button>
+
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                disabled={isGoogleLoading}
+                                onClick={handleGoogleSignIn}
+                                className="h-12 w-full gap-2"
+                            >
+                                {isGoogleLoading ? 'Conectando...' : 'Continuar com Google'}
+                                <FcGoogle size={22} />
+                            </Button>
                         </div>
+                    </form>
+
+                    <div className="mt-8 border-t border-[var(--border)] pt-6 text-center">
+                        <p className="text-sm text-[var(--muted)]">Já possui conta?</p>
+
+                        <button
+                            type="button"
+                            onClick={() => navigate('/')}
+                            className="mt-3 font-medium text-[var(--primary)] transition hover:text-[var(--primary-hover)]"
+                        >
+                            Voltar para login
+                        </button>
                     </div>
-
-                    {errorMessage && (
-                        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                            {errorMessage}
-                        </div>
-                    )}
-
-                    <Button
-                        type="submit"
-                        disabled={!isFormValid || isSubmitting}
-                        className="w-full"
-                    >
-                        {isSubmitting ? 'Criando conta...' : 'Criar conta'}
-                    </Button>
-
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={isGoogleLoading}
-                        onClick={handleGoogleSignIn}
-                        className="w-full text-2xl"
-                    >
-                        {isGoogleLoading ? 'Conectando...' : 'Continuar com Google'}{' '}
-                        <FcGoogle size={25} />
-                    </Button>
-                </form>
-
-                <div className="mt-6 border-t border-[var(--border)] pt-6 text-center">
-                    <p className="text-sm text-[var(--muted)]">Já possui conta?</p>
-
-                    <button
-                        type="button"
-                        onClick={() => navigate('/')}
-                        className="mt-3 font-medium text-[var(--primary)] transition hover:text-[var(--primary-hover)]"
-                    >
-                        Voltar para login
-                    </button>
                 </div>
             </section>
         </main>

@@ -1,57 +1,144 @@
 import { Navbar } from '../components/Navbar'
 import { useNavigate } from 'react-router-dom'
-import { FiDownload, FiCheckCircle, FiCalendar, FiClock, FiFileText, FiAlertTriangle, FiUser, FiChevronDown, FiChevronUp } from 'react-icons/fi'
-import { useState } from 'react'
-
-type TestResult = {
-  id: number
-  name: string
-  date: string
-  time: string
-  status: string
-  preliminaryResult: string
-  resultDescription: string
-  duration: string
-  specialist: string
-  nextSteps: string[]
-  recommendations: string[]
-}
-
-const mockTestResults: TestResult[] = [
-  {
-    id: 1,
-    name: 'Avaliação Cognitiva - TEA',
-    date: '15/04/2024',
-    time: '14:30',
-    status: 'Concluído',
-    preliminaryResult: 'Indícios Leves',
-    resultDescription: 'A avaliação indicou alguns traços associados ao espectro autista que merecem atenção especial. Recomendamos consulta com especialista para análise detalhada.',
-    duration: '45 minutos',
-    specialist: 'Dr. Tiago Marinho',
-    nextSteps: [
-      'Agendar consulta com especialista em neurodesenvolvimento',
-      'Levar relatório completo para análise clínica',
-      'Considerar avaliação complementar se necessário'
-    ],
-    recommendations: [
-      'Buscar acompanhamento psicológico',
-      'Pesquisar sobre estratégias de adaptação',
-      'Conversar com família sobre os resultados'
-    ]
-  },
-]
+import {
+  FiAlertCircle,
+  FiCalendar,
+  FiClock,
+  FiDownload,
+  FiFileText,
+  FiInfo,
+} from 'react-icons/fi'
+import { useState, useEffect } from 'react'
+import { generateTestResultPDF } from '../services/generatePDF'
+import { listTestes, type Teste } from '../services/testes'
+import { supabase } from '../utils/supabase'
+import { getTesteScore } from '../utils/testResults'
 
 export function MyTestsPage() {
   const navigate = useNavigate()
-  const [expandedSection, setExpandedSection] = useState<'details' | 'next-steps' | 'recommendations' | null>(null)
+  const [testes, setTestes] = useState<Teste[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [pdfError, setPdfError] = useState('')
+  const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null)
+  const teste = testes[0]
+  const score = teste ? getTesteScore(teste) : 0
+  const completedAt = teste?.finished_at ?? teste?.updated_at
 
-  const handleDownloadPDF = (testId: number, testName: string) => {
-    console.log(`Baixando PDF do teste ${testId}: ${testName}`)
-    // Simulação de download
-    const link = document.createElement('a')
-    link.href = '#'
-    link.download = `resultado-${testName.toLowerCase().replace(/\s+/g, '-')}-${testId}.pdf`
-    link.click()
+  useEffect(() => {
+    async function loadTestes() {
+      try {
+        setIsLoading(true)
+        setError('')
+        const data = await listTestes()
+        setTestes(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erro ao carregar testes')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadTestes()
+  }, [])
+
+  const handleDownloadPDF = async (teste: Teste) => {
+    try {
+      setPdfError('')
+      setGeneratingPdfId(teste.id ?? null)
+      const { data, error: userError } = await supabase.auth.getUser()
+
+      if (userError) {
+        throw new Error('Não foi possível carregar os dados do usuário.')
+      }
+
+      const metadata = data.user?.user_metadata ?? {}
+
+      generateTestResultPDF(teste, {
+        name: getMetadataText(metadata.name) || getMetadataText(metadata.full_name),
+        email: data.user?.email,
+        phone: data.user?.phone || getMetadataText(metadata.phone),
+        birthDate: getMetadataText(metadata.birthDate),
+        gender: getMetadataText(metadata.gender),
+      })
+    } catch (err) {
+      console.error('Erro ao gerar PDF:', err)
+      setPdfError('Não foi possível baixar o PDF. Tente novamente em alguns instantes.')
+    } finally {
+      setGeneratingPdfId(null)
+    }
+  }
+
+  function getMetadataText(value: unknown) {
+    return typeof value === 'string' ? value : undefined
+  }
+
+  function formatDateTime(value?: string | null) {
+    if (!value) return 'Não informado'
+
+    return new Date(value).toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  function formatStatus(status: string) {
+    const statusMap: Record<string, string> = {
+      concluido: 'Concluído',
+      em_andamento: 'Em andamento',
+      pendente: 'Pendente',
+      cancelado: 'Cancelado',
+    }
+
+    return statusMap[status] ?? status
+  }
+
+  function getStatusStyles(status: string) {
+    if (status === 'concluido') return 'bg-green-500/15 text-green-400 border-green-500/30'
+    if (status === 'em_andamento') return 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
+
+    return 'bg-[var(--surface-secondary)] text-[var(--muted)] border-[var(--border)]'
+  }
+
+  function getClassificationStyles(classificacao?: string | null) {
+    const normalized = classificacao?.toLowerCase() ?? ''
+
+    if (normalized.includes('alto') || normalized.includes('elevado')) {
+      return 'bg-red-500/15 text-red-300 border-red-500/30'
+    }
+
+    if (normalized.includes('moderado') || normalized.includes('limítrofe') || normalized.includes('leves')) {
+      return 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30'
+    }
+
+    return 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+  }
+
+  function getNextStep(teste: Teste) {
+    if (teste.status !== 'concluido') {
+      return 'Finalize o questionário para liberar pontuação, classificação e relatório em PDF.'
+    }
+
+    if (!teste.classificacao) {
+      return 'Resultado disponível. Agende uma consulta para interpretação clínica individualizada.'
+    }
+
+    return 'Use o PDF como apoio e agende uma consulta para discutir os próximos passos.'
+  }
+
+  function getResultDescription(teste: Teste) {
+    if (teste.status !== 'concluido') {
+      return 'Seu questionário foi iniciado, mas ainda precisa ser concluído para gerar a pontuação e o relatório.'
+    }
+
+    if (teste.classificacao) {
+      return `Seu resultado preliminar foi classificado como ${teste.classificacao}. Esse rastreio organiza sinais observados, mas não substitui avaliação clínica.`
+    }
+
+    return 'Seu resultado já está disponível para consulta e pode ser usado como apoio em uma avaliação especializada.'
   }
 
   return (
@@ -61,204 +148,143 @@ export function MyTestsPage() {
       <main className="md:ml-[280px] min-h-screen">
         <div className="h-16 md:hidden" />
         
-        <div className="p-6">
-          <div className="max-w-4xl mx-auto">
-            {/* Cabeçalho */}
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">
-                Meus Testes
-              </h1>
-              <p className="text-[var(--muted)]">
-                Acompanhe seus testes e avaliações realizadas
-              </p>
+        <div className="px-4 pb-10 pt-4 sm:px-6 md:px-8 md:py-8">
+          <div className="mx-auto max-w-5xl">
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-[var(--foreground)] md:text-3xl">
+                  Meu Teste
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm font-medium text-[var(--muted)] sm:text-base">
+                  Consulte o resultado do seu questionário, baixe o PDF e veja os próximos passos recomendados.
+                </p>
+              </div>
             </div>
 
-            {/* Teste Realizado - Layout Ampliado */}
             <div className="space-y-6">
-              {mockTestResults.map((test) => (
-                <div key={test.id} className="rounded-3xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--surface)]/80 p-4 sm:p-6 lg:p-8 shadow-xl">
-                  {/* Cabeçalho Principal */}
-                  <div className="mb-6 sm:mb-8">
-                    <div className="flex flex-col gap-4">
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="rounded-full bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-3 sm:p-4 border border-green-500/30">
-                          <FiCheckCircle className="h-6 w-6 sm:h-8 sm:w-8 text-green-400" />
-                        </div>
-                        <div className="flex-1">
-                          <h2 className="text-xl sm:text-2xl font-bold text-[var(--foreground)] mb-2">
-                            {test.name}
-                          </h2>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="px-3 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold bg-green-500/20 text-green-400 border border-green-500/30">
-                              {test.status}
-                            </span>
-                            <span className={`px-3 py-1 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold border ${
-                              test.preliminaryResult === 'Indícios Leves' 
-                                ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                                : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                            }`}>
-                              {test.preliminaryResult}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              {pdfError && (
+                <div className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  <FiAlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  {pdfError}
+                </div>
+              )}
 
-                  {/* Informações Básicas */}
-                  <div className="grid grid-cols-1 gap-3 sm:gap-4 mb-6 sm:mb-8">
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 sm:p-4">
-                      <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                        <FiCalendar className="h-4 w-4 sm:h-5 sm:w-5 text-[var(--primary)]" />
-                        <span className="text-xs sm:text-sm font-medium text-[var(--muted)]">Data</span>
-                      </div>
-                      <p className="text-base sm:text-lg font-semibold text-[var(--foreground)]">{test.date}</p>
-                    </div>
-                    
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 sm:p-4">
-                      <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                        <FiClock className="h-4 w-4 sm:h-5 sm:w-5 text-[var(--primary)]" />
-                        <span className="text-xs sm:text-sm font-medium text-[var(--muted)]">Horário & Duração</span>
-                      </div>
-                      <p className="text-base sm:text-lg font-semibold text-[var(--foreground)]">{test.time} • {test.duration}</p>
-                    </div>
-                    
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--background)] p-3 sm:p-4">
-                      <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                        <FiUser className="h-4 w-4 sm:h-5 sm:w-5 text-[var(--primary)]" />
-                        <span className="text-xs sm:text-sm font-medium text-[var(--muted)]">Especialista</span>
-                      </div>
-                      <p className="text-base sm:text-lg font-semibold text-[var(--foreground)]">{test.specialist}</p>
-                    </div>
-                  </div>
+              {isLoading && (
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-[var(--muted)]">
+                  Carregando seus testes...
+                </div>
+              )}
 
-                  {/* Resultado Detalhado */}
-                  <div className="mb-6 sm:mb-8">
-                    <div className="rounded-2xl border border-[var(--border)] bg-gradient-to-r from-[var(--background)] to-[var(--background)]/80 p-4 sm:p-6">
-                      <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                        <FiFileText className="h-5 w-5 sm:h-6 sm:w-6 text-[var(--primary)]" />
-                        <h3 className="text-lg sm:text-xl font-semibold text-[var(--foreground)]">Análise do Resultado</h3>
-                      </div>
-                      
-                      <div className="mb-4 sm:mb-6">
-                        <div className="flex items-start gap-3 sm:gap-4">
-                          <div className="rounded-full bg-yellow-500/20 p-1.5 sm:p-2 mt-0.5 sm:mt-1 border border-yellow-500/30">
-                            <FiAlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-base sm:text-lg font-semibold text-[var(--foreground)] mb-2">Resultado Preliminar</h4>
-                            <p className="text-sm sm:text-base text-[var(--foreground)] leading-relaxed mb-3 sm:mb-4">
-                              {test.resultDescription}
-                            </p>
-                            <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3 sm:p-4">
-                              <p className="text-xs sm:text-sm text-yellow-400 font-medium">
-                                <strong>Importante:</strong> Este é um resultado preliminar e não substitui uma avaliação clínica completa. 
-                                Consulte um especialista para interpretação adequada dos resultados.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              {!isLoading && error && (
+                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-8 text-center text-red-300">
+                  <FiAlertCircle className="mx-auto mb-3 h-6 w-6" />
+                  <p className="font-medium">{error}</p>
+                </div>
+              )}
 
-                  {/* Seções Expansíveis */}
-                  <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-                    {/* Próximos Passos */}
-                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--background)] overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSection(expandedSection === 'next-steps' ? null : 'next-steps')}
-                        className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-[var(--surface)]/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <div className="rounded-full bg-blue-500/20 p-1.5 sm:p-2 border border-blue-500/30">
-                            <FiCalendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
-                          </div>
-                          <h3 className="text-base sm:text-lg font-semibold text-[var(--foreground)]">Próximos Passos</h3>
-                        </div>
-                        {expandedSection === 'next-steps' ? (
-                          <FiChevronUp className="h-5 w-5 text-[var(--muted)]" />
-                        ) : (
-                          <FiChevronDown className="h-5 w-5 text-[var(--muted)]" />
-                        )}
-                      </button>
-                      
-                      {expandedSection === 'next-steps' && (
-                        <div className="px-4 sm:px-6 pb-4 sm:pb-6">
-                          <ul className="space-y-2 sm:space-y-3">
-                            {test.nextSteps.map((step, index) => (
-                              <li key={index} className="flex items-start gap-2 sm:gap-3">
-                                <span className="rounded-full bg-blue-500/20 text-blue-400 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs sm:text-sm font-semibold flex-shrink-0 mt-0.5">
-                                  {index + 1}
-                                </span>
-                                <span className="text-sm sm:text-base text-[var(--foreground)]">{step}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+              {!isLoading && !error && testes.length === 0 && (
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 sm:p-8">
+                  <div className="mx-auto max-w-2xl text-center">
+                    <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--primary)]/15">
+                      <FiFileText className="h-7 w-7 text-[var(--primary)]" />
                     </div>
-
-                    {/* Recomendações */}
-                    <div className="rounded-2xl border border-[var(--border)] bg-[var(--background)] overflow-hidden">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSection(expandedSection === 'recommendations' ? null : 'recommendations')}
-                        className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-[var(--surface)]/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <div className="rounded-full bg-purple-500/20 p-1.5 sm:p-2 border border-purple-500/30">
-                            <FiAlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
-                          </div>
-                          <h3 className="text-base sm:text-lg font-semibold text-[var(--foreground)]">Recomendações</h3>
-                        </div>
-                        {expandedSection === 'recommendations' ? (
-                          <FiChevronUp className="h-5 w-5 text-[var(--muted)]" />
-                        ) : (
-                          <FiChevronDown className="h-5 w-5 text-[var(--muted)]" />
-                        )}
-                      </button>
-                      
-                      {expandedSection === 'recommendations' && (
-                        <div className="px-4 sm:px-6 pb-4 sm:pb-6">
-                          <ul className="space-y-2 sm:space-y-3">
-                            {test.recommendations.map((recommendation, index) => (
-                              <li key={index} className="flex items-start gap-2 sm:gap-3">
-                                <span className="text-purple-400 text-lg sm:text-xl leading-none mt-1">•</span>
-                                <span className="text-sm sm:text-base text-[var(--foreground)]">{recommendation}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Ações */}
-                  <div className="pt-4 sm:pt-6 border-t border-[var(--border)]">
-                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadPDF(test.id, test.name)}
-                        className="flex-1 inline-flex items-center justify-center gap-3 px-5 py-3 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-black font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base"
-                      >
-                        <FiDownload className="h-4 w-4 sm:h-5 sm:w-5" />
-                        Baixar Relatório PDF
-                      </button>
-                      
-                      <button
-                        type="button"
-                        onClick={() => navigate('/nossos-servicos')}
-                        className="flex-1 inline-flex items-center justify-center gap-3 px-5 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base"
-                      >
-                        <FiCalendar className="h-4 w-4 sm:h-5 sm:w-5" />
-                        Agendar Consulta
-                      </button>
-                    </div>
+                    <h2 className="text-xl font-semibold text-[var(--foreground)]">
+                      Nenhum teste realizado ainda
+                    </h2>
+                    <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                      Cada usuário realiza um teste. Ao concluir o questionário, esta área exibirá sua pontuação, classificação, dados do teste e acesso ao PDF do resultado.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/questionario')}
+                      className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-white transition hover:bg-[var(--primary-hover)]"
+                    >
+                      <FiFileText className="h-4 w-4" />
+                      Realizar primeiro teste
+                    </button>
                   </div>
                 </div>
-              ))}
+              )}
+
+              {!isLoading && !error && teste && (
+                <>
+                  <section className="rounded-2xl border border-[var(--border)] bg-[#070707] p-4 sm:p-6">
+                    <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="mb-3 flex flex-wrap items-center gap-2">
+                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusStyles(teste.status)}`}>
+                            {formatStatus(teste.status)}
+                          </span>
+                          <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getClassificationStyles(teste.classificacao)}`}>
+                            {teste.classificacao || 'Classificação não informada'}
+                          </span>
+                        </div>
+                        <h2 className="text-xl font-bold text-[var(--foreground)] md:text-2xl">
+                          {teste.questionario?.titulo || 'Teste de rastreio'}
+                        </h2>
+                        {teste.questionario?.descricao && (
+                          <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--muted)]">
+                            {teste.questionario.descricao}
+                          </p>
+                        )}
+                      </div>
+
+                      <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-xs font-semibold text-[var(--muted)]">
+                        <FiClock className="h-3.5 w-3.5" />
+                        {formatDateTime(completedAt)}
+                      </span>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+                      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+                        <p className="text-sm font-medium text-[var(--muted)]">Pontuação total</p>
+                        <div className="mt-3 flex items-end gap-2">
+                          <span className="text-5xl font-bold text-[var(--foreground)]">{score}</span>
+                          <span className="mb-2 text-sm font-medium text-[var(--muted)]">pontos</span>
+                        </div>
+                        <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+                          {getResultDescription(teste)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+                        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--foreground)]">
+                          <FiInfo className="h-4 w-4 text-[var(--primary)]" />
+                          Próximo passo sugerido
+                        </div>
+                        <p className="text-sm leading-6 text-[var(--muted)]">{getNextStep(teste)}</p>
+                        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadPDF(teste)}
+                            disabled={generatingPdfId === teste.id}
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-bold text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <FiDownload className="h-4 w-4" />
+                            {generatingPdfId === teste.id ? 'Gerando PDF...' : 'Baixar PDF'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigate('/nossos-servicos')}
+                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:border-[var(--primary)]/50"
+                          >
+                            <FiCalendar className="h-4 w-4" />
+                            Agendar consulta
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
+                      <p className="text-sm font-medium leading-6 text-yellow-300">
+                        Este resultado é preliminar e não possui valor diagnóstico. Para confirmação ou interpretação adequada, procure acompanhamento profissional.
+                      </p>
+                    </div>
+                  </section>
+
+                  
+                </>
+              )}
             </div>
           </div>
         </div>

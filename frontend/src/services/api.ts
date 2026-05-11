@@ -9,6 +9,12 @@ type RequestOptions = {
   signal?: AbortSignal
 }
 
+type StoredAuthSession = {
+  tokens?: {
+    accessToken?: string
+  }
+}
+
 export class ApiError extends Error {
   status: number
   payload: unknown
@@ -25,13 +31,39 @@ function buildUrl(path: string) {
   return path.startsWith('http') ? path : `${API_URL}${path.startsWith('/') ? path : `/${path}`}`
 }
 
+function getStoredAccessToken() {
+  if (typeof window === 'undefined') return undefined
+
+  const storedSession = localStorage.getItem('auth.session')
+  if (!storedSession) return undefined
+
+  try {
+    const session = JSON.parse(storedSession) as StoredAuthSession
+    return session.tokens?.accessToken
+  } catch {
+    return undefined
+  }
+}
+
+function buildHeaders(headers?: HeadersInit) {
+  const requestHeaders = new Headers(headers)
+  const accessToken = getStoredAccessToken()
+
+  if (!requestHeaders.has('Accept')) {
+    requestHeaders.set('Accept', 'application/json')
+  }
+
+  if (accessToken && !requestHeaders.has('Authorization')) {
+    requestHeaders.set('Authorization', `Bearer ${accessToken}`)
+  }
+
+  return requestHeaders
+}
+
 export async function request<T>(path: string, options: RequestOptions = {}) {
   const response = await fetch(buildUrl(path), {
     method: options.method ?? 'GET',
-    headers: {
-      Accept: 'application/json',
-      ...options.headers,
-    },
+    headers: buildHeaders(options.headers),
     body: options.body,
     signal: options.signal,
   })

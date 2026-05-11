@@ -1,15 +1,7 @@
 import { FiMessageCircle, FiMail, FiPhone, FiCheckCircle } from 'react-icons/fi'
 import { Navbar } from '../components/Navbar'
 
-type Appointment = {
-    id: number
-    title: string
-    date: string
-    time: string
-    professional: string
-    status: string
-}
-
+/*
 const scheduledAppointments: Appointment[] = [
     {
         id: 1,
@@ -26,6 +18,7 @@ function formatSelectedDate(value: string) {
 
     return `${day}/${month}/${year}`
 }
+*/
 
 export function SchedulingPage() {
     function handleWhatsAppMessage() {
@@ -117,44 +110,6 @@ export function SchedulingPage() {
                         <p className="text-sm text-yellow-400 font-medium">
                             <span className="font-semibold">Importante:</span> Nossa secretária entrará em contato com você no prazo de 24-48 horas úteis para agendar sua consulta e fornecer todas as orientações necessárias.
                         </p>
-                    </div>
-
-                    <div className="mt-10 border-t border-[var(--border)] pt-6">
-                        <h2 className="text-base font-bold">Agendamentos</h2>
-                        <p className="mt-2 text-sm text-[var(--muted)]">
-                            Confira abaixo os próximos atendimentos cadastrados.
-                        </p>
-
-                        <div className="mt-5 grid gap-3">
-                            {scheduledAppointments.map((appointment) => {
-                                return (
-                                    <article
-                                        key={appointment.id}
-                                        className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
-                                    >
-                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                            <div>
-                                                <h3 className="font-semibold text-[var(--foreground)]">
-                                                    {appointment.title}
-                                                </h3>
-                                                <p className="mt-1 text-sm text-[var(--muted)]">
-                                                    {formatSelectedDate(appointment.date)} às {appointment.time}
-                                                </p>
-                                                <p className="mt-1 text-sm text-[var(--muted)]">
-                                                    {appointment.professional}
-                                                </p>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-2">
-                                                <span className="w-fit rounded-full border border-[var(--primary)]/40 bg-[var(--primary)]/10 px-3 py-1 text-xs font-semibold text-[var(--primary)]">
-                                                    {appointment.status}
-                                                </span>
-
-                                            </div>
-                                        </div>
-                                    </article>
-                                )
-                            })}
-                        </div>
                     </div>
                 </section>
             </main>

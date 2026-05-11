@@ -20,12 +20,14 @@ const initialFormState: FormState = {
 type LoginLocationState = {
     registeredEmail?: string
     registrationMessage?: string
+    from?: string
 }
 
 export function LoginPage() {
     const navigate = useNavigate()
     const location = useLocation()
     const locationState = location.state as LoginLocationState | null
+    const [redirectPath] = useState(locationState?.from ?? '/home')
 
     const [form, setForm] = useState<FormState>({
         ...initialFormState,
@@ -48,12 +50,6 @@ export function LoginPage() {
             return
         }
 
-        setForm((current) => ({
-            ...current,
-            email: locationState.registeredEmail ?? current.email,
-        }))
-        setSuccessMessage(locationState.registrationMessage ?? '')
-
         navigate(location.pathname, { replace: true, state: null })
     }, [location.pathname, locationState, navigate])
 
@@ -75,7 +71,7 @@ export function LoginPage() {
                 password: form.password,
             })
 
-            navigate('/home')
+            navigate(redirectPath, { replace: true })
         } catch (error) {
             setErrorMessage(
                 error instanceof Error

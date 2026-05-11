@@ -1,12 +1,6 @@
 import { Navbar } from '../components/Navbar'
-import { FiCheckCircle, FiCalendar, FiMessageCircle, FiArrowRight } from 'react-icons/fi'
+import { FiCheckCircle, FiCalendar, FiMessageCircle } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
-import type { Todo } from '../App'
-import { FaInfo } from 'react-icons/fa'
-
-type HomeProps = {
-  todos: Todo[]
-}
 
 const mockTests = [
   // finalizar informações de resultado
@@ -17,7 +11,7 @@ const mockAppointments = [
   { id: 2, title: 'Consulta com Psicólogo', date: '15/04/2024', time: '10:00', status: 'Concluído' }
 ]
 
-export function Home({ todos }: HomeProps) {
+export function Home() {
   const navigate = useNavigate()
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -156,19 +150,6 @@ export function Home({ todos }: HomeProps) {
               </div>
             </section>
 
-            {/* Todos (mantido para compatibilidade) */}
-            {todos.length > 0 && (
-              <section className="mb-8">
-                <h2 className="text-xl font-semibold text-[var(--foreground)] mb-6">Tarefas</h2>
-                <div className="space-y-3">
-                  {todos.map((todo) => (
-                    <div key={todo.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
-                      <p className="text-[var(--foreground)] font-medium">{todo.name}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
           </div>
         </div>
       </main>

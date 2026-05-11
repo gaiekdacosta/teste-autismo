@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import type { Session } from '@supabase/supabase-js'
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { LoginPage } from './pages/Login'
 import { RegisterPage } from './pages/Register'
 import { Home } from './pages/Home'
@@ -8,56 +9,74 @@ import { supabase } from './utils/supabase'
 import { ConfigPage } from './pages/Config'
 import { MyTestsPage } from './pages/MyTests'
 import { SchedulingPage } from './pages/Scheduling'
-import { QuestionnairePage } from './pages/questionnaire'
+import { QuestionnairePage } from './pages/Questionnaire'
+import { AdminPage } from './pages/Admin'
 import Layout from './components/Layout'
 
-export type Todo = {
-  id: number
-  name: string
+
+function persistAuthSession(session: Session | null) {
+  if (!session?.access_token) {
+    localStorage.removeItem('auth.session')
+    return
+  }
+
+  localStorage.setItem('auth.session', JSON.stringify({
+    tokens: {
+      accessToken: session.access_token,
+      refreshToken: session.refresh_token,
+      expiresIn: session.expires_in,
+    },
+    user: {
+      id: session.user.id,
+      email: session.user.email!,
+      name: session.user.user_metadata?.name || session.user.user_metadata?.full_name,
+      phone: session.user.user_metadata?.phone || session.user.phone,
+      avatarUrl: session.user.user_metadata?.avatar_url,
+    },
+  }))
+}
+
+type ProtectedRouteProps = {
+  isAuthenticated: boolean
+  isLoading: boolean
+}
+
+function ProtectedRoute({
+  isAuthenticated,
+  isLoading,
+}: ProtectedRouteProps) {
+  const location = useLocation()
+
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-6 text-sm text-[var(--muted)]">
+        Verificando sessão...
+      </main>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    )
+  }
+
+  return <Outlet />
 }
 
 function App() {
-  const [todos, setTodos] = useState<Todo[]>([])
-
-  useEffect(() => {
-    async function getTodos() {
-      const { data } = await supabase
-        .from('todos')
-        .select('id, name')
-
-      if (data) {
-        setTodos(data)
-      }
-    }
-
-    void getTodos()
-  }, [])
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthLoading, setIsAuthLoading] = useState(true)
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_OUT') {
-          localStorage.removeItem('auth.session')
-        }
-        
-        if (event === 'TOKEN_REFRESHED') {
-          if (session?.access_token) {
-            localStorage.setItem('auth.session', JSON.stringify({
-              tokens: {
-                accessToken: session.access_token,
-                refreshToken: session.refresh_token,
-                expiresIn: session.expires_in,
-              },
-              user: {
-                id: session.user.id,
-                email: session.user.email!,
-                name: session.user.user_metadata?.name || session.user.user_metadata?.full_name,
-                phone: session.user.user_metadata?.phone || session.user.phone,
-                avatarUrl: session.user.user_metadata?.avatar_url,
-              }
-            }))
-          }
-        }
+      (_event, session) => {
+        setIsAuthenticated(Boolean(session?.access_token))
+        persistAuthSession(session)
       }
     )
 
@@ -65,25 +84,18 @@ function App() {
       try {
         const { data, error } = await supabase.auth.getSession()
         if (error || !data.session) {
-          localStorage.removeItem('auth.session')
+          setIsAuthenticated(false)
+          persistAuthSession(null)
         } else {
-          localStorage.setItem('auth.session', JSON.stringify({
-            tokens: {
-              accessToken: data.session.access_token,
-              refreshToken: data.session.refresh_token,
-              expiresIn: data.session.expires_in,
-            },
-            user: {
-              id: data.session.user.id,
-              email: data.session.user.email!,
-              name: data.session.user.user_metadata?.name || data.session.user.user_metadata?.full_name,
-              phone: data.session.user.user_metadata?.phone || data.session.user.phone,
-              avatarUrl: data.session.user.user_metadata?.avatar_url,
-            }
-          }))
+          setIsAuthenticated(true)
+          persistAuthSession(data.session)
         }
       } catch (err) {
         console.error('Erro ao renovar sessão:', err)
+        setIsAuthenticated(false)
+        persistAuthSession(null)
+      } finally {
+        setIsAuthLoading(false)
       }
     }
 
@@ -98,35 +110,28 @@ function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route
           path="/register"
           element={<RegisterPage />}
         />
         <Route
-          path="/config"
-          element={<ConfigPage />}
-        />
-        <Route
-          path="/home"
-          element={<Home todos={todos} />}
-        />
-        <Route
-          path="/nossos-servicos"
-          element={<OurServices />}
-        />
-        <Route
-          path="/meus-testes"
-          element={<MyTestsPage />}
-        />
-        <Route
-          path="/meus-agendamentos"
-          element={<SchedulingPage />}
-        />
-        <Route
-          path="/questionario"
-          element={<QuestionnairePage />}
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
+          element={
+            <ProtectedRoute
+              isAuthenticated={isAuthenticated}
+              isLoading={isAuthLoading}
+            />
+          }
+        >
+          <Route path="/config" element={<ConfigPage />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/nossos-servicos" element={<OurServices />} />
+          <Route path="/meus-testes" element={<MyTestsPage />} />
+          <Route path="/meus-agendamentos" element={<SchedulingPage />} />
+          <Route path="/questionario" element={<QuestionnairePage />} />
+          <Route path="/admin" element={<AdminPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Layout>
   )
