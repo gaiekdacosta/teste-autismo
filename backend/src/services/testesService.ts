@@ -233,6 +233,18 @@ export class TestesService {
       return "Nao classificado";
     }
 
+    if (maxScore === 10) {
+      if (score >= 6) {
+        return "Triagem positiva para TEA";
+      }
+
+      if (score >= 4) {
+        return "Resultado limítrofe";
+      }
+
+      return "Baixa probabilidade";
+    }
+
     const percentage = score / maxScore;
 
     if (percentage < 0.34) {

@@ -8,7 +8,6 @@ export type Teste = {
   status: string
   pontuacao_total: number
   classificacao: string | null
-  link_pdf: string | null
   started_at: string | null
   finished_at: string | null
   created_at: string
@@ -96,7 +95,6 @@ export function updateTeste(id: string, data: Partial<{
   status: string
   pontuacao_total: number
   classificacao: string
-  link_pdf: string
   started_at: string
   finished_at: string
 }>) {

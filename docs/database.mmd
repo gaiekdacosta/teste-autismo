@@ -1,101 +1,111 @@
-erDiagram
+classDiagram
 
-  agendamentos {
-    uuid id PK
-    uuid id_user
-    uuid id_teste FK "nullable"
-    text status
-    timestamptz data_agendamento
-    timestamptz created_at
-    timestamptz updated_at
-  }
+class AuthUser {
+  +uuid id
+}
 
-  alternativas {
-    uuid id PK
-    uuid id_questao FK
-    int4 posicao
-    text texto
-    int4 valor
-    timestamptz created_at
-    timestamptz updated_at
-  }
+class Agendamento {
+  +uuid id
+  +uuid id_user
+  +uuid id_teste
+  +text status
+  +timestamptz data_agendamento
+  +timestamptz created_at
+  +timestamptz updated_at
+}
 
-  avaliados {
-    uuid id PK
-    uuid id_user
-    text nome
-    date data_nascimento "nullable"
-    text genero "nullable"
-    timestamptz created_at
-    timestamptz updated_at
-  }
+class Alternativa {
+  +uuid id
+  +uuid id_questao
+  +int posicao
+  +text texto
+  +int valor
+  +timestamptz created_at
+  +timestamptz updated_at
+}
 
-  contatos {
-    uuid id PK
-    text whatsapp
-    text email
-    timestamptz created_at
-    timestamptz updated_at
-  }
+class Avaliado {
+  +uuid id
+  +uuid id_user
+  +text nome
+  +date data_nascimento
+  +text genero
+  +timestamptz created_at
+  +timestamptz updated_at
+}
 
-  questionario {
-    uuid id PK
-    text titulo
-    text descricao "nullable"
-    int4 versao
-    bool ativo
-    timestamptz created_at
-    timestamptz updated_at
-  }
+class Contato {
+  +uuid id
+  +text whatsapp
+  +text email
+  +timestamptz created_at
+  +timestamptz updated_at
+}
 
-  questoes {
-    uuid id PK
-    uuid id_questionario FK
-    int4 posicao
-    text pergunta
-    timestamptz created_at
-    timestamptz updated_at
-  }
+class Questionario {
+  +uuid id
+  +text titulo
+  +text descricao
+  +int versao
+  +boolean ativo
+  +timestamptz created_at
+  +timestamptz updated_at
+}
 
-  respostas {
-    uuid id PK
-    uuid id_teste FK
-    uuid id_questao FK
-    uuid id_alternativa FK
-    int4 valor
-    timestamptz created_at
-  }
+class Questao {
+  +uuid id
+  +uuid id_questionario
+  +int posicao
+  +text pergunta
+  +timestamptz created_at
+  +timestamptz updated_at
+}
 
-  servicos_pacotes {
-    uuid id PK
-    text pacote
-    text descricao "nullable"
-    numeric valor
-    int4 posicao
-    timestamptz created_at
-    timestamptz updated_at
-  }
+class Resposta {
+  +uuid id
+  +uuid id_teste
+  +uuid id_questao
+  +uuid id_alternativa
+  +int valor
+  +timestamptz created_at
+}
 
-  testes {
-    uuid id PK
-    uuid id_user
-    uuid id_avaliado FK
-    uuid id_questionario FK
-    text status
-    int4 pontuacao_total
-    text classificacao "nullable"
-    text link_pdf "nullable"
-    timestamptz started_at "nullable"
-    timestamptz finished_at "nullable"
-    timestamptz created_at
-    timestamptz updated_at
-  }
+class ServicoPacote {
+  +uuid id
+  +text pacote
+  +text descricao
+  +numeric valor
+  +int posicao
+  +timestamptz created_at
+  +timestamptz updated_at
+}
 
-  questionario ||--o{ questoes : possui
-  questoes ||--o{ alternativas : possui
-  avaliados ||--o{ testes : realiza
-  questionario ||--o{ testes : aplicado_em
-  testes ||--o{ respostas : possui
-  questoes ||--o{ respostas : respondida_em
-  alternativas ||--o{ respostas : selecionada_em
-  testes ||--o{ agendamentos : agenda
+class Teste {
+  +uuid id
+  +uuid id_user
+  +uuid id_avaliado
+  +uuid id_questionario
+  +text status
+  +int pontuacao_total
+  +text classificacao
+  +timestamptz started_at
+  +timestamptz finished_at
+  +timestamptz created_at
+  +timestamptz updated_at
+}
+
+AuthUser "1" --> "0..*" Avaliado : possui
+AuthUser "1" --> "0..*" Teste : realiza
+AuthUser "1" --> "0..*" Agendamento : agenda
+
+Questionario "1" --> "0..*" Questao : possui
+Questao "1" --> "0..*" Alternativa : possui
+
+Avaliado "1" --> "0..*" Teste : é avaliado em
+Questionario "1" --> "0..*" Teste : aplicado em
+
+Teste "1" --> "0..*" Resposta : possui
+Questao "1" --> "0..*" Resposta : respondida em
+Alternativa "1" --> "0..*" Resposta : selecionada em
+
+Teste "1" --> "0..1" Agendamento : pode gerar

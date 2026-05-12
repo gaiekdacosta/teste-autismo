@@ -39,8 +39,6 @@ const avaliadoResumoResponseSchema = {
   properties: {
     id: { type: "string" },
     nome: { type: "string" },
-    data_nascimento: { type: "string", nullable: true },
-    genero: { type: "string", nullable: true },
   },
   additionalProperties: false,
 } as const;
@@ -101,7 +99,6 @@ const testeResponseSchema = {
     "status",
     "pontuacao_total",
     "classificacao",
-    "link_pdf",
     "started_at",
     "finished_at",
     "created_at",
@@ -118,7 +115,6 @@ const testeResponseSchema = {
     status: { type: "string" },
     pontuacao_total: { type: "integer" },
     classificacao: { type: "string", nullable: true },
-    link_pdf: { type: "string", nullable: true },
     started_at: { type: "string", nullable: true },
     finished_at: { type: "string", nullable: true },
     created_at: { type: "string" },
@@ -194,7 +190,6 @@ export const updateTesteSchema: FastifySchema = {
       status: { type: "string" },
       pontuacao_total: { type: "integer" },
       classificacao: { type: "string" },
-      link_pdf: { type: "string" },
       started_at: { type: "string" },
       finished_at: { type: "string" },
     },

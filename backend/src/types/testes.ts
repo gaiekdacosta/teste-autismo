@@ -13,7 +13,6 @@ export type Teste = {
   status: TesteStatus;
   pontuacao_total: number;
   classificacao: string | null;
-  link_pdf: string | null;
   started_at: string | null;
   finished_at: string | null;
   created_at: string;
@@ -30,8 +29,6 @@ export type TesteCompleto = Teste & {
   avaliado: {
     id: string;
     nome: string;
-    data_nascimento: string | null;
-    genero: string | null;
   } | null;
   respostas: RespostaCompleta[];
 };
@@ -56,7 +53,6 @@ export type UpdateTesteInput = Partial<{
   status: TesteStatus;
   pontuacao_total: number;
   classificacao: string;
-  link_pdf: string;
   started_at: string;
   finished_at: string;
 }>;
@@ -65,8 +61,6 @@ export type Avaliado = {
   id: string;
   id_user: string;
   nome: string;
-  data_nascimento: string | null;
-  genero: string | null;
   created_at: string;
   updated_at: string;
 };

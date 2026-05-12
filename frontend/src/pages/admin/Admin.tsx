@@ -9,11 +9,11 @@ import {
     FiSettings,
 } from 'react-icons/fi'
 
-import { Navbar } from '../components/Navbar'
-import { Button } from '../components/ui/Button'
-import { ApiError } from '../services/api'
-import { createQuestionario, getActiveQuestionario, updateQuestionario } from '../services/questionarios'
-import type { Alternativa, QuestionarioCompleto, QuestaoInput } from '../services/questionarios'
+import { Navbar } from '../../components/Navbar'
+import { Button } from '../../components/ui/Button'
+import { ApiError } from '../../services/api'
+import { createQuestionario, getActiveQuestionario, updateQuestionario } from '../../services/questionarios'
+import type { Alternativa, QuestionarioCompleto, QuestaoInput } from '../../services/questionarios'
 
 type ServicePrice = {
     id: string

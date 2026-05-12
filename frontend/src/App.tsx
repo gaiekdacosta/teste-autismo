@@ -10,7 +10,8 @@ import { ConfigPage } from './pages/Config'
 import { MyTestsPage } from './pages/MyTests'
 import { SchedulingPage } from './pages/Scheduling'
 import { QuestionnairePage } from './pages/Questionnaire'
-import { AdminPage } from './pages/Admin'
+import { AdminPage } from './pages/admin/Admin'
+import { UsersPage } from './pages/admin/Users'
 import Layout from './components/Layout'
 
 
@@ -130,6 +131,7 @@ function App() {
           <Route path="/meus-agendamentos" element={<SchedulingPage />} />
           <Route path="/questionario" element={<QuestionnairePage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/users" element={<UsersPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

@@ -171,7 +171,7 @@ function addValidationAndTechnicianSection(doc: jsPDF, yPosition: number, testeI
     'Pós-graduado e com experiência em atendimento em TDAH e TEA',
     'Mestrando em Autismo - Madrid, Espanha',
     '4 formações em Psiquiatria pela Harvard University, com ênfase em TDAH e TEA',
-    '+0.000 atendimentos realizados',
+    '+ 10.000 atendimentos realizados',
   ]
 
   addBoxAt(doc, PAGE_MARGIN, yPosition, columnWidth, height)

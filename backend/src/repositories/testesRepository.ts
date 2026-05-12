@@ -29,7 +29,6 @@ const TESTE_COMPLETO_SELECT = `
   status,
   pontuacao_total,
   classificacao,
-  link_pdf,
   started_at,
   finished_at,
   created_at,
@@ -42,9 +41,7 @@ const TESTE_COMPLETO_SELECT = `
   ),
   avaliados (
     id,
-    nome,
-    data_nascimento,
-    genero
+    nome
   ),
   respostas (
     id,
@@ -130,7 +127,6 @@ export class TestesRepository {
       status,
       pontuacao_total,
       classificacao,
-      link_pdf,
       started_at,
       finished_at,
       created_at,
@@ -263,7 +259,6 @@ export class TestesRepository {
       status: TESTE_STATUS.emAndamento,
       pontuacao_total: 0,
       classificacao: null,
-      link_pdf: null,
       started_at: new Date().toISOString(),
       finished_at: null,
     };
@@ -295,7 +290,6 @@ export class TestesRepository {
       status: TESTE_STATUS.concluido,
       pontuacao_total: result.pontuacao_total,
       classificacao: result.classificacao,
-      link_pdf: null,
       started_at: now,
       finished_at: now,
     };
@@ -330,10 +324,6 @@ export class TestesRepository {
 
     if (input.classificacao !== undefined) {
       updateData.classificacao = input.classificacao;
-    }
-
-    if (input.link_pdf !== undefined) {
-      updateData.link_pdf = input.link_pdf;
     }
 
     if (input.started_at !== undefined) {
@@ -393,7 +383,7 @@ export class TestesRepository {
     if ((!test.avaliado || !test.avaliado.id) && test.id_avaliado) {
       const { data: a } = await supabaseAdmin
         .from('avaliados')
-        .select('id, nome, data_nascimento, genero')
+        .select('id, nome')
         .eq('id', test.id_avaliado)
         .maybeSingle();
       if (a) test.avaliado = a;
@@ -451,8 +441,6 @@ export class TestesRepository {
       id: randomUUID(),
       id_user: userId,
       nome: input.nome.trim(),
-      data_nascimento: input.data_nascimento ?? null,
-      genero: input.genero ?? null,
     };
 
     const { error } = await supabaseAdmin.from("avaliados").insert(avaliado);
@@ -469,14 +457,6 @@ export class TestesRepository {
 
     if (input.nome !== undefined) {
       updateData.nome = input.nome.trim();
-    }
-
-    if (input.data_nascimento !== undefined) {
-      updateData.data_nascimento = input.data_nascimento;
-    }
-
-    if (input.genero !== undefined) {
-      updateData.genero = input.genero;
     }
 
     if (Object.keys(updateData).length === 0) {
