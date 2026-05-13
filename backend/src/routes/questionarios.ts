@@ -43,7 +43,10 @@ export async function questionariosRoutes(
 
   fastify.post<{ Body: CreateQuestionarioInput }>(
     "/questionarios",
-    { schema: createQuestionarioSchema },
+    {
+      schema: createQuestionarioSchema,
+      onRequest: [fastify.authenticate, fastify.requireAdmin],
+    },
     async (request, reply) => {
       const questionario = await questionariosService.create(request.body);
       return reply.status(201).send(questionario);
@@ -52,26 +55,38 @@ export async function questionariosRoutes(
 
   fastify.put<{ Params: QuestionarioParams; Body: UpdateQuestionarioInput }>(
     "/questionarios/:id",
-    { schema: updateQuestionarioSchema },
+    {
+      schema: updateQuestionarioSchema,
+      onRequest: [fastify.authenticate, fastify.requireAdmin],
+    },
     async (request) =>
       questionariosService.update(request.params.id, request.body),
   );
 
   fastify.patch<{ Params: QuestionarioParams }>(
     "/questionarios/:id/ativar",
-    { schema: toggleQuestionarioSchema },
+    {
+      schema: toggleQuestionarioSchema,
+      onRequest: [fastify.authenticate, fastify.requireAdmin],
+    },
     async (request) => questionariosService.activate(request.params.id),
   );
 
   fastify.patch<{ Params: QuestionarioParams }>(
     "/questionarios/:id/desativar",
-    { schema: toggleQuestionarioSchema },
+    {
+      schema: toggleQuestionarioSchema,
+      onRequest: [fastify.authenticate, fastify.requireAdmin],
+    },
     async (request) => questionariosService.deactivate(request.params.id),
   );
 
   fastify.delete<{ Params: QuestionarioParams }>(
     "/questionarios/:id",
-    { schema: deleteQuestionarioSchema },
+    {
+      schema: deleteQuestionarioSchema,
+      onRequest: [fastify.authenticate, fastify.requireAdmin],
+    },
     async (request, reply) => {
       await questionariosService.delete(request.params.id);
       return reply.status(204).send();

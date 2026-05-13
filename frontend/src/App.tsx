@@ -13,6 +13,7 @@ import { QuestionnairePage } from './pages/Questionnaire'
 import { AdminPage } from './pages/admin/Admin'
 import { UsersPage } from './pages/admin/Users'
 import Layout from './components/Layout'
+import { getAdministradorAtual } from './services/administradores'
 
 
 function persistAuthSession(session: Session | null) {
@@ -69,14 +70,40 @@ function ProtectedRoute({
   return <Outlet />
 }
 
+type AdminRouteProps = {
+  hasAdminAccess: boolean
+  isLoading: boolean
+}
+
+function AdminRoute({ hasAdminAccess, isLoading }: AdminRouteProps) {
+  if (isLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-6 text-sm text-[var(--muted)]">
+        Verificando acesso administrativo...
+      </main>
+    )
+  }
+
+  if (!hasAdminAccess) {
+    return <Navigate to="/home" replace />
+  }
+
+  return <Outlet />
+}
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
+  const [hasAdminAccess, setHasAdminAccess] = useState(false)
+  const [isAdminLoading, setIsAdminLoading] = useState(false)
+  const [hasCheckedAdminAccess, setHasCheckedAdminAccess] = useState(false)
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setIsAuthenticated(Boolean(session?.access_token))
+        setHasAdminAccess(false)
+        setHasCheckedAdminAccess(false)
         persistAuthSession(session)
       }
     )
@@ -86,6 +113,9 @@ function App() {
         const { data, error } = await supabase.auth.getSession()
         if (error || !data.session) {
           setIsAuthenticated(false)
+          setHasAdminAccess(false)
+          setIsAdminLoading(false)
+          setHasCheckedAdminAccess(false)
           persistAuthSession(null)
         } else {
           setIsAuthenticated(true)
@@ -94,6 +124,9 @@ function App() {
       } catch (err) {
         console.error('Erro ao renovar sessão:', err)
         setIsAuthenticated(false)
+        setHasAdminAccess(false)
+        setIsAdminLoading(false)
+        setHasCheckedAdminAccess(false)
         persistAuthSession(null)
       } finally {
         setIsAuthLoading(false)
@@ -106,6 +139,43 @@ function App() {
       subscription.unsubscribe()
     }
   }, [])
+
+  useEffect(() => {
+    if (isAuthLoading) return
+
+    if (!isAuthenticated) {
+      return
+    }
+
+    let isActive = true
+
+    async function checkAdminAccess() {
+      try {
+        setIsAdminLoading(true)
+        await getAdministradorAtual()
+
+        if (isActive) {
+          setHasAdminAccess(true)
+          setHasCheckedAdminAccess(true)
+        }
+      } catch {
+        if (isActive) {
+          setHasAdminAccess(false)
+          setHasCheckedAdminAccess(true)
+        }
+      } finally {
+        if (isActive) {
+          setIsAdminLoading(false)
+        }
+      }
+    }
+
+    void checkAdminAccess()
+
+    return () => {
+      isActive = false
+    }
+  }, [isAuthenticated, isAuthLoading])
 
   return (
     <Layout>
@@ -130,8 +200,17 @@ function App() {
           <Route path="/meus-testes" element={<MyTestsPage />} />
           <Route path="/meus-agendamentos" element={<SchedulingPage />} />
           <Route path="/questionario" element={<QuestionnairePage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/users" element={<UsersPage />} />
+          <Route
+            element={
+              <AdminRoute
+                hasAdminAccess={hasAdminAccess}
+                isLoading={isAdminLoading || !hasCheckedAdminAccess}
+              />
+            }
+          >
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/users" element={<UsersPage />} />
+          </Route>
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

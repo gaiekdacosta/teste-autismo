@@ -6,6 +6,8 @@ import { authPlugin } from "./middlewares/auth";
 import { healthRoutes } from "./routes/health";
 import { questionariosRoutes } from "./routes/questionarios";
 import { testesRoutes } from "./routes/testes";
+import { usuariosRoutes } from "./routes/usuarios";
+import { administradoresRoutes } from "./routes/administradores";
 
 config();
 
@@ -58,6 +60,8 @@ async function start(): Promise<void> {
     await fastify.register(healthRoutes);
     await fastify.register(questionariosRoutes);
     await fastify.register(testesRoutes);
+    await fastify.register(usuariosRoutes);
+    await fastify.register(administradoresRoutes);
 
     await fastify.listen({
       port,
