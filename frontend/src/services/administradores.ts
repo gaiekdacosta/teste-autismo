@@ -1,5 +1,7 @@
 import { jsonRequest, request } from './api'
 
+const ADMIN_ACCESS_STORAGE_KEY = 'auth.adminAccess'
+
 export type NivelAdministrador = 'admin' | 'super_admin'
 
 export type Administrador = {
@@ -19,8 +21,38 @@ export type CreateAdministradorInput = {
 
 export type UpdateAdministradorInput = Partial<CreateAdministradorInput>
 
-export function getAdministradorAtual() {
-  return request<Administrador>('/administradores/me')
+export function getCachedAdminAccess() {
+  if (typeof window === 'undefined') return null
+
+  const cachedValue = localStorage.getItem(ADMIN_ACCESS_STORAGE_KEY)
+
+  if (cachedValue === 'true') return true
+  if (cachedValue === 'false') return false
+
+  return null
+}
+
+export function setCachedAdminAccess(hasAccess: boolean) {
+  if (typeof window === 'undefined') return
+
+  localStorage.setItem(ADMIN_ACCESS_STORAGE_KEY, String(hasAccess))
+}
+
+export function clearCachedAdminAccess() {
+  if (typeof window === 'undefined') return
+
+  localStorage.removeItem(ADMIN_ACCESS_STORAGE_KEY)
+}
+
+export async function getAdministradorAtual() {
+  try {
+    const administrador = await request<Administrador>('/administradores/me')
+    setCachedAdminAccess(true)
+    return administrador
+  } catch (error) {
+    setCachedAdminAccess(false)
+    throw error
+  }
 }
 
 export function listAdministradores(signal?: AbortSignal) {

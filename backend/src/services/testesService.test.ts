@@ -16,10 +16,19 @@ import type {
   UpdateTesteInput,
 } from "../types/testes";
 
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 class FakeTestesRepository implements TestesRepositoryContract {
   private createdTeste: TesteCompleto | null = null;
 
-  constructor(private readonly questionario: QuestionarioParaTeste) {}
+  constructor(
+    private readonly questionario: QuestionarioParaTeste,
+    teste?: TesteCompleto,
+  ) {
+    this.createdTeste = teste ? clone(teste) : null;
+  }
 
   async findByUserId(): Promise<TesteCompleto[]> {
     return this.createdTeste ? [this.createdTeste] : [];
@@ -66,7 +75,43 @@ class FakeTestesRepository implements TestesRepositoryContract {
     return "teste-1";
   }
 
-  async update(_id: string, _input: UpdateTesteInput): Promise<void> {}
+  async update(_id: string, input: UpdateTesteInput): Promise<void> {
+    if (this.createdTeste) {
+      this.createdTeste = {
+        ...this.createdTeste,
+        ...input,
+      };
+    }
+  }
+
+  async replaceRespostas(
+    testeId: string,
+    respostas: Array<{ id_questao: string; id_alternativa: string; valor: number }>,
+  ): Promise<void> {
+    if (!this.createdTeste) return;
+
+    const questoesAtualizadas = new Set(respostas.map((resposta) => resposta.id_questao));
+    const respostasMantidas = this.createdTeste.respostas.filter(
+      (resposta) => !questoesAtualizadas.has(resposta.id_questao),
+    );
+
+    this.createdTeste = {
+      ...this.createdTeste,
+      respostas: [
+        ...respostasMantidas,
+        ...respostas.map((resposta, index) => ({
+          id: `resposta-${index + 1}`,
+          id_teste: testeId,
+          id_questao: resposta.id_questao,
+          id_alternativa: resposta.id_alternativa,
+          valor: resposta.valor,
+          created_at: "2026-01-01T00:00:00.000Z",
+          questao: null,
+          alternativa: null,
+        })),
+      ],
+    };
+  }
 
   async deleteById(): Promise<void> {}
 
@@ -110,6 +155,25 @@ function buildAq10Questionario(): QuestionarioParaTeste {
   };
 }
 
+function buildTesteEmAndamento(): TesteCompleto {
+  return {
+    id: "teste-1",
+    id_user: "user-1",
+    id_avaliado: null,
+    id_questionario: "aq-10",
+    status: "em_andamento",
+    pontuacao_total: 0,
+    classificacao: null,
+    started_at: "2026-01-01T00:00:00.000Z",
+    finished_at: null,
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-01T00:00:00.000Z",
+    questionario: null,
+    avaliado: null,
+    respostas: [],
+  };
+}
+
 async function completeAq10(score: number): Promise<TesteCompleto> {
   const repository = new FakeTestesRepository(buildAq10Questionario());
   const service = new TestesService(repository);
@@ -149,5 +213,56 @@ describe("TestesService", () => {
 
     assert.equal(teste.pontuacao_total, 6);
     assert.equal(teste.classificacao, "Triagem positiva para TEA");
+  });
+
+  it("salva respostas parciais em teste em andamento", async () => {
+    const repository = new FakeTestesRepository(
+      buildAq10Questionario(),
+      buildTesteEmAndamento(),
+    );
+    const service = new TestesService(repository);
+
+    const teste = await service.saveRespostas(
+      "teste-1",
+      {
+        respostas: [
+          {
+            id_questao: "questao-1",
+            id_alternativa: "questao-1-pontua",
+          },
+        ],
+      },
+      "user-1",
+    );
+
+    assert.equal(teste.status, "em_andamento");
+    assert.equal(teste.respostas.length, 1);
+    assert.equal(teste.respostas[0].valor, 1);
+  });
+
+  it("bloqueia conclusao de teste incompleto", async () => {
+    const repository = new FakeTestesRepository(
+      buildAq10Questionario(),
+      buildTesteEmAndamento(),
+    );
+    const service = new TestesService(repository);
+
+    await service.saveRespostas(
+      "teste-1",
+      {
+        respostas: [
+          {
+            id_questao: "questao-1",
+            id_alternativa: "questao-1-pontua",
+          },
+        ],
+      },
+      "user-1",
+    );
+
+    await assert.rejects(
+      () => service.completeExisting("teste-1", "user-1"),
+      /Todas as questoes devem ser respondidas/,
+    );
   });
 });

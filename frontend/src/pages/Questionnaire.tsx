@@ -6,7 +6,14 @@ import { ApiError } from '../services/api'
 import { getStoredSession } from '../services/auth'
 import { getActiveQuestionario } from '../services/questionarios'
 import type { QuestionarioCompleto } from '../services/questionarios'
-import { completeTeste, createAvaliado } from '../services/testes'
+import {
+    completeExistingTeste,
+    createAvaliado,
+    createTeste,
+    getTeste,
+    listTestes,
+    saveTesteRespostas,
+} from '../services/testes'
 
 type Answers = Record<string, string>
 
@@ -27,10 +34,12 @@ export function QuestionnairePage() {
     const [questionario, setQuestionario] = useState<QuestionarioCompleto | null>(null)
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
     const [answers, setAnswers] = useState<Answers>({})
+    const [testeId, setTesteId] = useState('')
     const [avaliadoId, setAvaliadoId] = useState('')
     const [showCompletion, setShowCompletion] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [isSavingAnswer, setIsSavingAnswer] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
     const [submitErrorMessage, setSubmitErrorMessage] = useState('')
 
@@ -41,10 +50,31 @@ export function QuestionnairePage() {
             try {
                 setIsLoading(true)
                 setErrorMessage('')
-                const [activeQuestionario] = await Promise.all([
+                const [activeQuestionario, userTestes] = await Promise.all([
                     getActiveQuestionario(controller.signal),
+                    listTestes(),
                 ])
+
+                const draft = userTestes.find((teste) =>
+                    teste.status === 'em_andamento' &&
+                    teste.id_questionario === activeQuestionario.id
+                )
+
                 setQuestionario(activeQuestionario)
+
+                if (draft) {
+                    const draftDetails = await getTeste(draft.id)
+                    const restoredAnswers = draftDetails.respostas.reduce<Answers>((currentAnswers, resposta) => ({
+                        ...currentAnswers,
+                        [resposta.id_questao]: resposta.id_alternativa,
+                    }), {})
+                    const firstPendingIndex = activeQuestionario.questoes.findIndex((questao) => !restoredAnswers[questao.id])
+
+                    setTesteId(draftDetails.id)
+                    setAvaliadoId(draftDetails.id_avaliado ?? '')
+                    setAnswers(restoredAnswers)
+                    setCurrentQuestionIndex(firstPendingIndex >= 0 ? firstPendingIndex : 0)
+                }
             } catch (error) {
                 if (controller.signal.aborted) return
                 setErrorMessage(getErrorMessage(error))
@@ -73,9 +103,52 @@ export function QuestionnairePage() {
         })
     }, [answers, questions])
 
-    function handleAnswer(alternativaId: string) {
+    async function getOrCreateTesteId() {
+        if (testeId) {
+            return testeId
+        }
+
+        if (!questionario) {
+            throw new Error('Questionário não carregado.')
+        }
+
+        const idAvaliado = await getAvaliadoId()
+        const teste = await createTeste({
+            id_questionario: questionario.id,
+            id_avaliado: idAvaliado,
+        })
+
+        setTesteId(teste.id)
+
+        return teste.id
+    }
+
+    async function handleAnswer(alternativaId: string) {
         if (!currentQuestion) return
+
         setAnswers((currentAnswers) => ({ ...currentAnswers, [currentQuestion.id]: alternativaId }))
+        setSubmitErrorMessage('')
+
+        try {
+            setIsSavingAnswer(true)
+            const currentTesteId = await getOrCreateTesteId()
+            await saveTesteRespostas(currentTesteId, {
+                respostas: [
+                    {
+                        id_questao: currentQuestion.id,
+                        id_alternativa: alternativaId,
+                    },
+                ],
+            })
+        } catch (error) {
+            setSubmitErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Não foi possível salvar sua resposta.',
+            )
+        } finally {
+            setIsSavingAnswer(false)
+        }
     }
 
     function handlePrevious() {
@@ -137,12 +210,11 @@ export function QuestionnairePage() {
 
         try {
             setIsSubmitting(true)
-            const idAvaliado = await getAvaliadoId()
-            await completeTeste({
-                id_questionario: questionario.id,
-                id_avaliado: idAvaliado,
+            const currentTesteId = await getOrCreateTesteId()
+            await saveTesteRespostas(currentTesteId, {
                 respostas,
             })
+            await completeExistingTeste(currentTesteId)
             setShowCompletion(true)
         } catch (error) {
             setSubmitErrorMessage(
@@ -259,10 +331,11 @@ export function QuestionnairePage() {
                                                         <button
                                                             key={alternativa.id}
                                                             type="button"
-                                                            onClick={() => handleAnswer(alternativa.id)}
+                                                            onClick={() => void handleAnswer(alternativa.id)}
+                                                            disabled={isSavingAnswer || isSubmitting}
                                                             className={`
                                                                 w-full text-left px-5 py-4 rounded-xl border-2 transition-all duration-200
-                                                                flex items-center gap-4
+                                                                flex items-center gap-4 disabled:cursor-not-allowed disabled:opacity-70
                                                                 ${isSelected
                                                                     ? 'border-(--primary) bg-(--primary)/10'
                                                                     : 'border-(--border) bg-(--surface-secondary) hover:border-(--border) hover:bg-(--surface)'
@@ -336,6 +409,7 @@ export function QuestionnairePage() {
                                                 onClick={handleNext}
                                                 disabled={
                                                     isSubmitting ||
+                                                    isSavingAnswer ||
                                                     !answers[currentQuestion.id] ||
                                                     (currentQuestionIndex === questions.length - 1 &&
                                                         answeredCount < questions.length)
@@ -344,6 +418,8 @@ export function QuestionnairePage() {
                                             >
                                                 {isSubmitting
                                                     ? 'Salvando...'
+                                                    : isSavingAnswer
+                                                        ? 'Salvando resposta...'
                                                     : currentQuestionIndex === questions.length - 1
                                                         ? 'Finalizar'
                                                         : 'Próxima'}

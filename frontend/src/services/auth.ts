@@ -1,5 +1,7 @@
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../utils/supabase'
+import { clearCachedAdminAccess } from './administradores'
+import { jsonRequest } from './api'
 
 export type AuthTokens = {
   accessToken: string
@@ -131,34 +133,27 @@ export async function loginWithPassword(credentials: LoginCredentials) {
 }
 
 export async function registerWithPassword(credentials: RegisterCredentials) {
-  const { name, email, phone, birthDate, gender, password } = credentials
-
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        name,
-        phone,
-        birthDate,
-        gender,
-      },
-    },
+  const response = await jsonRequest<LoginResponse>('/auth/register', {
+    method: 'POST',
+    body: credentials,
   })
 
-  if (error) throw new Error(mapAuthError(error.message))
-
-  if (data.session?.user) {
-    await syncUserPhoneToProvider(data.session.user)
-    const response = await getFreshSession()
-    persistSession(response)
-    return response
+  if (response.tokens?.accessToken && response.tokens.refreshToken) {
+    await supabase.auth.setSession({
+      access_token: response.tokens.accessToken,
+      refresh_token: response.tokens.refreshToken,
+    })
   }
 
-  const response = mapSession(data.session)
   persistSession(response)
 
   return response
+}
+
+export async function notifyCurrentUserRegistration() {
+  return jsonRequest<{ notified: boolean }>('/auth/notify-new-user', {
+    method: 'POST',
+  })
 }
 
 export async function verifyPhoneChange(credentials: VerifyPhoneChangeCredentials) {
@@ -251,5 +246,6 @@ export function clearStoredSession() {
   if (typeof window === 'undefined') return
 
   localStorage.removeItem(AUTH_STORAGE_KEY)
+  clearCachedAdminAccess()
   void supabase.auth.signOut()
 }

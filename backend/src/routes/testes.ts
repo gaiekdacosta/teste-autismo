@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import {
+  completeExistingTesteSchema,
   completeTesteSchema,
   createAvaliadoSchema,
   createContatoSchema,
@@ -9,6 +10,7 @@ import {
   getTesteSchema,
   listAvaliadosSchema,
   listTestesSchema,
+  saveTesteRespostasSchema,
   updateAvaliadoSchema,
   updateContatoSchema,
   updateTesteSchema,
@@ -19,6 +21,7 @@ import type {
   CreateAvaliadoInput,
   CreateContatoInput,
   CreateTesteInput,
+  SaveTesteRespostasInput,
   UpdateAvaliadoInput,
   UpdateContatoInput,
   UpdateTesteInput,
@@ -87,6 +90,30 @@ export async function testesRoutes(fastify: FastifyInstance): Promise<void> {
       const teste = await testesService.complete(request.body, userId);
       reply.status(201);
       return teste;
+    },
+  );
+
+  fastify.put<{ Params: TesteParams; Body: SaveTesteRespostasInput }>(
+    "/testes/:id/respostas",
+    { schema: saveTesteRespostasSchema, onRequest: [fastify.authenticate] },
+    async (request) => {
+      const userId = request.user?.id;
+      if (!userId) {
+        throw new Error("Unauthorized");
+      }
+      return testesService.saveRespostas(request.params.id, request.body, userId);
+    },
+  );
+
+  fastify.post<{ Params: TesteParams }>(
+    "/testes/:id/concluir",
+    { schema: completeExistingTesteSchema, onRequest: [fastify.authenticate] },
+    async (request) => {
+      const userId = request.user?.id;
+      if (!userId) {
+        throw new Error("Unauthorized");
+      }
+      return testesService.completeExisting(request.params.id, userId);
     },
   );
 

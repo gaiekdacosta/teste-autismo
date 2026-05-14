@@ -49,6 +49,10 @@ export type CompleteTesteInput = {
   respostas: RespostaInput[];
 };
 
+export type SaveTesteRespostasInput = {
+  respostas: RespostaInput[];
+};
+
 export type UpdateTesteInput = Partial<{
   status: TesteStatus;
   pontuacao_total: number;

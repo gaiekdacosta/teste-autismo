@@ -1,5 +1,6 @@
 import { badRequest, notFound } from "../errors/AppError";
 import { TestesRepository } from "../repositories/testesRepository";
+import { TESTE_STATUS } from "../types/testes";
 import type {
   Avaliado,
   CompleteTesteInput,
@@ -9,6 +10,7 @@ import type {
   CreateTesteInput,
   QuestionarioParaTeste,
   RespostaInput,
+  SaveTesteRespostasInput,
   TesteCompleto,
   UpdateAvaliadoInput,
   UpdateContatoInput,
@@ -22,6 +24,7 @@ export type TestesRepositoryContract = Pick<
   | "findQuestionarioParaTeste"
   | "create"
   | "createCompleted"
+  | "replaceRespostas"
   | "update"
   | "deleteById"
   | "findAvaliadosByUserId"
@@ -87,6 +90,63 @@ export class TestesService {
     );
 
     return this.getById(testeId, userId);
+  }
+
+  async saveRespostas(
+    id: string,
+    input: SaveTesteRespostasInput,
+    userId: string,
+  ): Promise<TesteCompleto> {
+    const teste = await this.getById(id, userId);
+
+    if (teste.status !== TESTE_STATUS.emAndamento) {
+      throw badRequest("Apenas testes em andamento podem receber respostas.");
+    }
+
+    const questionario = await this.testesRepository.findQuestionarioParaTeste(
+      teste.id_questionario,
+    );
+
+    if (!questionario) {
+      throw notFound("Questionario nao encontrado.");
+    }
+
+    const respostas = this.validateRespostas(questionario, input.respostas, false);
+    await this.testesRepository.replaceRespostas(id, respostas);
+
+    return this.getById(id, userId);
+  }
+
+  async completeExisting(id: string, userId: string): Promise<TesteCompleto> {
+    const teste = await this.getById(id, userId);
+
+    if (teste.status !== TESTE_STATUS.emAndamento) {
+      throw badRequest("Apenas testes em andamento podem ser concluídos.");
+    }
+
+    const questionario = await this.testesRepository.findQuestionarioParaTeste(
+      teste.id_questionario,
+    );
+
+    if (!questionario) {
+      throw notFound("Questionario nao encontrado.");
+    }
+
+    const respostas = teste.respostas.map((resposta) => ({
+      id_questao: resposta.id_questao,
+      id_alternativa: resposta.id_alternativa,
+    }));
+    const result = this.buildResult(questionario, respostas);
+    const now = new Date().toISOString();
+
+    await this.testesRepository.update(id, {
+      status: TESTE_STATUS.concluido,
+      pontuacao_total: result.pontuacao_total,
+      classificacao: result.classificacao,
+      finished_at: now,
+    });
+
+    return this.getById(id, userId);
   }
 
   async update(
@@ -174,41 +234,7 @@ export class TestesService {
     classificacao: string;
     respostas: Array<RespostaInput & { valor: number }>;
   } {
-    const respostaPorQuestao = new Map<string, RespostaInput>();
-
-    for (const resposta of respostas) {
-      if (respostaPorQuestao.has(resposta.id_questao)) {
-        throw badRequest("Cada questao deve possuir apenas uma resposta.");
-      }
-
-      respostaPorQuestao.set(resposta.id_questao, resposta);
-    }
-
-    if (respostaPorQuestao.size !== questionario.questoes.length) {
-      throw badRequest("Todas as questoes devem ser respondidas.");
-    }
-
-    const respostasComValor = questionario.questoes.map((questao) => {
-      const resposta = respostaPorQuestao.get(questao.id);
-
-      if (!resposta) {
-        throw badRequest("Todas as questoes devem ser respondidas.");
-      }
-
-      const alternativa = questao.alternativas.find(
-        (item) => item.id === resposta.id_alternativa,
-      );
-
-      if (!alternativa) {
-        throw badRequest("Alternativa invalida para a questao informada.");
-      }
-
-      return {
-        ...resposta,
-        valor: alternativa.valor,
-      };
-    });
-
+    const respostasComValor = this.validateRespostas(questionario, respostas, true);
     const pontuacaoTotal = respostasComValor.reduce(
       (total, resposta) => total + resposta.valor,
       0,
@@ -226,6 +252,52 @@ export class TestesService {
       classificacao: this.classifyScore(pontuacaoTotal, pontuacaoMaxima),
       respostas: respostasComValor,
     };
+  }
+
+  private validateRespostas(
+    questionario: QuestionarioParaTeste,
+    respostas: RespostaInput[],
+    requireAll: boolean,
+  ): Array<RespostaInput & { valor: number }> {
+    const respostaPorQuestao = new Map<string, RespostaInput>();
+    const questoesIds = new Set(questionario.questoes.map((questao) => questao.id));
+
+    for (const resposta of respostas) {
+      if (respostaPorQuestao.has(resposta.id_questao)) {
+        throw badRequest("Cada questao deve possuir apenas uma resposta.");
+      }
+
+      if (!questoesIds.has(resposta.id_questao)) {
+        throw badRequest("Questao invalida para o questionario informado.");
+      }
+
+      respostaPorQuestao.set(resposta.id_questao, resposta);
+    }
+
+    if (requireAll && respostaPorQuestao.size !== questionario.questoes.length) {
+      throw badRequest("Todas as questoes devem ser respondidas.");
+    }
+
+    return questionario.questoes.flatMap((questao) => {
+      const resposta = respostaPorQuestao.get(questao.id);
+
+      if (!resposta) {
+        return [];
+      }
+
+      const alternativa = questao.alternativas.find(
+        (item) => item.id === resposta.id_alternativa,
+      );
+
+      if (!alternativa) {
+        throw badRequest("Alternativa invalida para a questao informada.");
+      }
+
+      return {
+        ...resposta,
+        valor: alternativa.valor,
+      };
+    });
   }
 
   private classifyScore(score: number, maxScore: number): string {

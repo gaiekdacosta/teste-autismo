@@ -91,6 +91,24 @@ export function completeTeste(data: {
   })
 }
 
+export function saveTesteRespostas(id: string, data: {
+  respostas: Array<{
+    id_questao: string
+    id_alternativa: string
+  }>
+}) {
+  return jsonRequest<Teste>(`/testes/${id}/respostas`, {
+    method: 'PUT',
+    body: data,
+  })
+}
+
+export function completeExistingTeste(id: string) {
+  return jsonRequest<Teste>(`/testes/${id}/concluir`, {
+    method: 'POST',
+  })
+}
+
 export function updateTeste(id: string, data: Partial<{
   status: string
   pontuacao_total: number

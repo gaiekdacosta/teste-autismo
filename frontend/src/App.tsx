@@ -13,12 +13,18 @@ import { QuestionnairePage } from './pages/Questionnaire'
 import { AdminPage } from './pages/admin/Admin'
 import { UsersPage } from './pages/admin/Users'
 import Layout from './components/Layout'
-import { getAdministradorAtual } from './services/administradores'
+import {
+  clearCachedAdminAccess,
+  getAdministradorAtual,
+  getCachedAdminAccess,
+} from './services/administradores'
+import { notifyCurrentUserRegistration } from './services/auth'
 
 
 function persistAuthSession(session: Session | null) {
   if (!session?.access_token) {
     localStorage.removeItem('auth.session')
+    clearCachedAdminAccess()
     return
   }
 
@@ -94,17 +100,29 @@ function AdminRoute({ hasAdminAccess, isLoading }: AdminRouteProps) {
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
-  const [hasAdminAccess, setHasAdminAccess] = useState(false)
+  const [hasAdminAccess, setHasAdminAccess] = useState(() => getCachedAdminAccess() === true)
   const [isAdminLoading, setIsAdminLoading] = useState(false)
   const [hasCheckedAdminAccess, setHasCheckedAdminAccess] = useState(false)
+  const [adminCheckVersion, setAdminCheckVersion] = useState(0)
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        setIsAuthenticated(Boolean(session?.access_token))
-        setHasAdminAccess(false)
-        setHasCheckedAdminAccess(false)
         persistAuthSession(session)
+
+        if (!session?.access_token) {
+          setIsAuthenticated(false)
+          setHasAdminAccess(false)
+          setIsAdminLoading(false)
+          setHasCheckedAdminAccess(false)
+          return
+        }
+
+        setIsAuthenticated(true)
+        setHasAdminAccess(getCachedAdminAccess() === true)
+        setIsAdminLoading(false)
+        setHasCheckedAdminAccess(false)
+        setAdminCheckVersion((currentVersion) => currentVersion + 1)
       }
     )
 
@@ -119,6 +137,10 @@ function App() {
           persistAuthSession(null)
         } else {
           setIsAuthenticated(true)
+          setHasAdminAccess(getCachedAdminAccess() === true)
+          setIsAdminLoading(false)
+          setHasCheckedAdminAccess(false)
+          setAdminCheckVersion((currentVersion) => currentVersion + 1)
           persistAuthSession(data.session)
         }
       } catch (err) {
@@ -175,7 +197,15 @@ function App() {
     return () => {
       isActive = false
     }
-  }, [isAuthenticated, isAuthLoading])
+  }, [isAuthenticated, isAuthLoading, adminCheckVersion])
+
+  useEffect(() => {
+    if (isAuthLoading || !isAuthenticated) return
+
+    void notifyCurrentUserRegistration().catch(() => {
+      // A notificacao nao deve bloquear o acesso do usuario.
+    })
+  }, [isAuthenticated, isAuthLoading, adminCheckVersion])
 
   return (
     <Layout>

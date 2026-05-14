@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   FiAlertCircle,
   FiCalendar,
+  FiCheckCircle,
   FiClock,
   FiDownload,
   FiFileText,
@@ -24,6 +25,7 @@ export function MyTestsPage() {
   const teste = testes[0]
   const score = teste ? getTesteScore(teste) : 0
   const completedAt = teste?.finished_at ?? teste?.updated_at
+  const isCompleted = teste?.status === 'concluido'
 
   useEffect(() => {
     async function loadTestes() {
@@ -254,15 +256,26 @@ export function MyTestsPage() {
                         </div>
                         <p className="text-sm leading-6 text-[var(--muted)]">{getNextStep(teste)}</p>
                         <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadPDF(teste)}
-                            disabled={generatingPdfId === teste.id}
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-bold text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            <FiDownload className="h-4 w-4" />
-                            {generatingPdfId === teste.id ? 'Gerando PDF...' : 'Baixar PDF'}
-                          </button>
+                          {isCompleted ? (
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadPDF(teste)}
+                              disabled={generatingPdfId === teste.id}
+                              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-bold text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <FiDownload className="h-4 w-4" />
+                              {generatingPdfId === teste.id ? 'Gerando PDF...' : 'Baixar PDF'}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => navigate('/questionario')}
+                              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-bold text-white transition hover:bg-[var(--primary-hover)]"
+                            >
+                              <FiCheckCircle className="h-4 w-4" />
+                              Continuar teste
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => navigate('/nossos-servicos')}

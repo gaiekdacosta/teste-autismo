@@ -348,6 +348,29 @@ export class TestesRepository {
     }
   }
 
+  async replaceRespostas(
+    testeId: string,
+    respostas: Array<RespostaInput & { valor: number }>,
+  ): Promise<void> {
+    if (respostas.length === 0) {
+      return;
+    }
+
+    const questoesIds = respostas.map((resposta) => resposta.id_questao);
+
+    const { error: deleteError } = await supabaseAdmin
+      .from("respostas")
+      .delete()
+      .eq("id_teste", testeId)
+      .in("id_questao", questoesIds);
+
+    if (deleteError) {
+      throwSupabaseError("remover respostas anteriores", deleteError);
+    }
+
+    await this.insertRespostas(buildRespostaRows(testeId, respostas));
+  }
+
   async deleteById(id: string): Promise<void> {
     const { error } = await supabaseAdmin.from("testes").delete().eq("id", id);
 
@@ -398,7 +421,7 @@ export class TestesRepository {
     }
 
     // Se finished_at estiver nulo, tenta inferir das respostas ou updated_at
-    if (!test.finished_at) {
+    if (!test.finished_at && test.status === TESTE_STATUS.concluido) {
       if (test.respostas?.length) {
         const dates = test.respostas.map((r: any) => new Date(r.created_at).getTime());
         test.finished_at = new Date(Math.max(...dates)).toISOString();

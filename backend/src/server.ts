@@ -3,11 +3,13 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { AppError } from "./errors/AppError";
 import { authPlugin } from "./middlewares/auth";
+import { authRoutes } from "./routes/auth";
 import { healthRoutes } from "./routes/health";
 import { questionariosRoutes } from "./routes/questionarios";
 import { testesRoutes } from "./routes/testes";
 import { usuariosRoutes } from "./routes/usuarios";
 import { administradoresRoutes } from "./routes/administradores";
+import { servicosRoutes } from "./routes/servicos";
 
 config();
 
@@ -57,11 +59,13 @@ async function start(): Promise<void> {
     });
 
     await fastify.register(authPlugin);
+    await fastify.register(authRoutes);
     await fastify.register(healthRoutes);
     await fastify.register(questionariosRoutes);
     await fastify.register(testesRoutes);
     await fastify.register(usuariosRoutes);
     await fastify.register(administradoresRoutes);
+    await fastify.register(servicosRoutes);
 
     await fastify.listen({
       port,

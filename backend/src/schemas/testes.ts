@@ -181,6 +181,44 @@ export const completeTesteSchema: FastifySchema = {
   },
 };
 
+export const saveTesteRespostasSchema: FastifySchema = {
+  params: idParamsSchema,
+  body: {
+    type: "object",
+    required: ["respostas"],
+    properties: {
+      respostas: {
+        type: "array",
+        minItems: 1,
+        items: {
+          type: "object",
+          required: ["id_questao", "id_alternativa"],
+          properties: {
+            id_questao: { type: "string", pattern: uuidPattern },
+            id_alternativa: { type: "string", pattern: uuidPattern },
+          },
+          additionalProperties: false,
+        },
+      },
+    },
+    additionalProperties: false,
+  },
+  response: {
+    200: testeResponseSchema,
+    400: messageResponseSchema,
+    404: messageResponseSchema,
+  },
+};
+
+export const completeExistingTesteSchema: FastifySchema = {
+  params: idParamsSchema,
+  response: {
+    200: testeResponseSchema,
+    400: messageResponseSchema,
+    404: messageResponseSchema,
+  },
+};
+
 export const updateTesteSchema: FastifySchema = {
   params: idParamsSchema,
   body: {

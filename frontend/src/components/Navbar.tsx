@@ -13,7 +13,10 @@ import {
 } from "react-icons/fi";
 import { Profile } from "./Profile";
 import { IoExtensionPuzzleSharp } from "react-icons/io5";
-import { getAdministradorAtual } from "../services/administradores";
+import {
+    getAdministradorAtual,
+    getCachedAdminAccess,
+} from "../services/administradores";
 
 const menuItems = [
     { label: "Tela inicial", to: "/home", icon: FiGrid },
@@ -30,7 +33,7 @@ const adminItems = [
 
 export function Navbar() {
     const location = useLocation()
-    const [hasAdminAccess, setHasAdminAccess] = useState(false)
+    const [hasAdminAccess, setHasAdminAccess] = useState(() => getCachedAdminAccess() === true)
     const isAdminSectionActive = adminItems.some((item) => item.to === location.pathname)
 
     useEffect(() => {

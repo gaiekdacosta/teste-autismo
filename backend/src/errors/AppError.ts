@@ -19,3 +19,7 @@ export function badRequest(message: string): AppError {
 export function conflict(message: string): AppError {
   return new AppError(message, 409);
 }
+
+export function internalError(message: string): AppError {
+  return new AppError(message, 500);
+}

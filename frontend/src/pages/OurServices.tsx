@@ -1,44 +1,89 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FiCheck, FiShoppingCart } from 'react-icons/fi'
 import { Navbar } from '@/components/Navbar'
+import {
+    createServicePurchase,
+    listServices,
+    type ServiceCatalogItem,
+} from '@/services/servicos'
 
-type Service = {
-    id: 'testes-consultas' | 'apenas-testes' | 'apenas-consulta'
-    title: string
-    description: string
-    price: string
-    eyebrow: string
+const serviceEyebrows: Record<ServiceCatalogItem['id'], string> = {
+    'testes-consultas': 'Pacote completo',
+    'apenas-testes': 'Teste avulso',
+    'apenas-consulta': 'Consulta avulsa',
 }
 
-const services: Service[] = [
-    {
-        id: 'testes-consultas',
-        title: 'Testes + Consultas',
-        description:
-            'Pacote completo para realizar os testes de rastreio e receber acompanhamento em consulta para interpretação dos resultados, orientação clínica e próximos passos.',
-        price: 'R$ 450,00',
-        eyebrow: 'Pacote completo',
-    },
-    {
-        id: 'apenas-testes',
-        title: 'Apenas Testes',
-        description:
-            'Acesso aos testes de rastreio para avaliar sinais associados ao espectro autista, com resultado organizado para apoiar sua jornada de investigação.',
-        price: 'R$ 49,00',
-        eyebrow: 'Teste avulso',
-    },
-    {
-        id: 'apenas-consulta',
-        title: 'Apenas Consulta',
-        description:
-            'Consulta individual para análise de resultados, orientação clínica e acompanhamento especializado sem a necessidade de realizar testes.',
-        price: 'R$ 400,00',
-        eyebrow: 'Consulta avulsa',
-    },
-]
+const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+})
+
+function formatPrice(priceInCents: number) {
+    return currencyFormatter.format(priceInCents / 100)
+}
 
 export function OurServices() {
-    const [selectedService, setSelectedService] = useState<Service['id']>('testes-consultas')
+    const [services, setServices] = useState<ServiceCatalogItem[]>([])
+    const [selectedServiceId, setSelectedServiceId] = useState<ServiceCatalogItem['id'] | null>(null)
+    const [errorMessage, setErrorMessage] = useState('')
+    const [isLoadingServices, setIsLoadingServices] = useState(true)
+    const [isLoading, setIsLoading] = useState(false)
+
+    useEffect(() => {
+        let isMounted = true
+
+        async function loadServices() {
+            try {
+                setIsLoadingServices(true)
+                setErrorMessage('')
+
+                const servicesResponse = await listServices()
+
+                if (!isMounted) return
+
+                setServices(servicesResponse)
+                setSelectedServiceId(servicesResponse[0]?.id ?? null)
+            } catch (error) {
+                if (!isMounted) return
+
+                setErrorMessage(
+                    error instanceof Error
+                        ? error.message
+                        : 'Não foi possível carregar os serviços.'
+                )
+            } finally {
+                if (isMounted) {
+                    setIsLoadingServices(false)
+                }
+            }
+        }
+
+        void loadServices()
+
+        return () => {
+            isMounted = false
+        }
+    }, [])
+
+    async function handleBuyService() {
+        if (!selectedServiceId) return
+
+        try {
+            setIsLoading(true)
+            setErrorMessage('')
+
+            const response = await createServicePurchase(selectedServiceId)
+            window.location.assign(response.checkoutUrl)
+        } catch (error) {
+            setErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Não foi possível iniciar a compra.'
+            )
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
     return (
         <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
@@ -60,14 +105,26 @@ export function OurServices() {
                         <p className="text-sm text-[var(--muted)]">Nossos serviços</p>
 
                         <div className="mt-4 flex flex-col gap-3">
+                            {isLoadingServices && (
+                                <div className="rounded-2xl border border-[var(--border)] bg-[#080808] p-5 text-sm text-[var(--muted)] md:p-6">
+                                    Carregando serviços...
+                                </div>
+                            )}
+
+                            {!isLoadingServices && services.length === 0 && !errorMessage && (
+                                <div className="rounded-2xl border border-[var(--border)] bg-[#080808] p-5 text-sm text-[var(--muted)] md:p-6">
+                                    Nenhum serviço disponível no momento.
+                                </div>
+                            )}
+
                             {services.map((service) => {
-                                const isSelected = selectedService === service.id
+                                const isSelected = selectedServiceId === service.id
 
                                 return (
                                     <button
                                         key={service.id}
                                         type="button"
-                                        onClick={() => setSelectedService(service.id)}
+                                        onClick={() => setSelectedServiceId(service.id)}
                                         className={`group w-full rounded-2xl border bg-[#080808] p-5 text-left transition md:p-6 ${isSelected
                                                 ? 'border-[var(--primary)] shadow-[0_0_0_2px_rgba(76,175,80,0.9),inset_0_0_0_1px_rgba(76,175,80,0.65)]'
                                                 : 'border-[var(--border)] hover:border-[var(--primary)]/60'
@@ -87,10 +144,10 @@ export function OurServices() {
 
                                                 <div>
                                                     <span className="text-xs font-medium uppercase tracking-[0.14em] text-[var(--primary)]">
-                                                        {service.eyebrow}
+                                                        {serviceEyebrows[service.id]}
                                                     </span>
                                                     <h2 className="mt-2 text-base font-bold leading-snug text-[var(--foreground)] md:text-lg">
-                                                        {service.title}
+                                                        {service.name}
                                                     </h2>
                                                     <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--muted)]">
                                                         {service.description}
@@ -99,7 +156,7 @@ export function OurServices() {
                                             </div>
 
                                             <strong className="ml-10 whitespace-nowrap text-2xl font-bold text-[var(--foreground)] md:ml-0">
-                                                {service.price}
+                                                {formatPrice(service.priceInCents)}
                                             </strong>
                                         </div>
                                     </button>
@@ -112,17 +169,25 @@ export function OurServices() {
                         <p className="text-sm text-[var(--muted)]">
                             Serviço selecionado:{' '}
                             <span className="font-semibold text-[var(--foreground)]">
-                                {services.find((service) => service.id === selectedService)?.title}
+                                {services.find((service) => service.id === selectedServiceId)?.name ?? '-'}
                             </span>
                         </p>
 
                         <button
                             type="button"
-                            className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-black transition hover:bg-[var(--primary-hover)]"
+                            onClick={handleBuyService}
+                            disabled={isLoading || isLoadingServices || !selectedServiceId}
+                            className="inline-flex items-center justify-center rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-bold text-black transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-70"
                         >
-                            Comprar agora
+                            {isLoading ? 'Gerando link...' : 'Comprar agora'}
                         </button>
                     </div>
+
+                    {errorMessage && (
+                        <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                            {errorMessage}
+                        </p>
+                    )}
                 </section>
             </main>
         </div>

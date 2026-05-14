@@ -91,9 +91,17 @@ type JsonRequestOptions = Omit<RequestOptions, 'body'> & {
 }
 
 export function jsonRequest<T>(path: string, options: JsonRequestOptions = {}) {
+  const method = options.method ?? 'GET'
+  const body =
+    options.body === undefined && method !== 'GET'
+      ? JSON.stringify({})
+      : options.body === undefined
+        ? null
+        : JSON.stringify(options.body)
+
   return request<T>(path, {
     ...options,
-    body: options.body === undefined ? null : JSON.stringify(options.body),
+    body,
     headers: {
       'Content-Type': 'application/json',
       ...(options.headers ?? {}),
