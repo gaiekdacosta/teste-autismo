@@ -56,6 +56,8 @@ async function start(): Promise<void> {
   try {
     await fastify.register(cors, {
       origin: frontendUrls,
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "Accept"],
     });
 
     await fastify.register(authPlugin);

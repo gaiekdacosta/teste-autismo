@@ -35,6 +35,21 @@ export class AdministradoresRepository {
     return (data ?? []) as Administrador[];
   }
 
+  async findActiveEmails(): Promise<string[]> {
+    const { data, error } = await supabaseAdmin
+      .from("administradores")
+      .select("email")
+      .eq("ativo", true);
+
+    if (error) {
+      throwSupabaseError("buscar emails dos administradores", error);
+    }
+
+    return (data ?? [])
+      .map((administrador) => administrador.email)
+      .filter((email): email is string => Boolean(email));
+  }
+
   async findActiveByUserId(userId: string): Promise<Administrador | null> {
     const { data, error } = await supabaseAdmin
       .from("administradores")

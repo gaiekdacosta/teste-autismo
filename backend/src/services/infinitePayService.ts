@@ -69,33 +69,78 @@ function isPaidStatus(status?: string): boolean {
   return status === "paid" || status === "approved" || status === "authorized";
 }
 
+function appendOrderNsu(url: string | undefined, orderNsu: string): string | undefined {
+  if (!url) {
+    return undefined;
+  }
+
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}order_nsu=${encodeURIComponent(orderNsu)}`;
+}
+
+function getPublicUrlEnv(name: string): string | undefined {
+  const value = getEnv(name);
+
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    const url = new URL(value);
+    const isLocalhost = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+
+    if (isLocalhost) {
+      return undefined;
+    }
+
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
+function validateService(service: ServiceCatalogItem): void {
+  if (!service.description.trim()) {
+    throw badRequest("Descricao do servico e obrigatoria para gerar o checkout.");
+  }
+
+  if (!Number.isInteger(service.priceInCents) || service.priceInCents <= 0) {
+    throw badRequest("Valor do servico deve ser maior que zero.");
+  }
+}
+
 export class InfinitePayService {
   async createCheckoutLink(
     input: CreateCheckoutLinkInput,
   ): Promise<CreateCheckoutLinkResponse> {
+    validateService(input.service);
+
     const handle = getRequiredEnv("INFINITEPAY_HANDLE");
-    const redirectUrl = getEnv("INFINITEPAY_REDIRECT_URL");
-    const webhookUrl = process.env.INFINITEPAY_WEBHOOK_URL ?? "";
+    const redirectUrl = appendOrderNsu(
+      getPublicUrlEnv("INFINITEPAY_REDIRECT_URL"),
+      input.orderNsu,
+    );
+    const webhookUrl = getPublicUrlEnv("INFINITEPAY_WEBHOOK_URL");
+    const body = {
+      handle,
+      order_nsu: input.orderNsu,
+      ...(redirectUrl ? { redirect_url: redirectUrl } : {}),
+      ...(webhookUrl ? { webhook_url: webhookUrl } : {}),
+      items: [
+        {
+          quantity: 1,
+          price: input.service.priceInCents,
+          description: input.service.name,
+        },
+      ],
+    };
 
     const response = await fetch(getInfinitePayUrl("/links"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        handle,
-        order_nsu: input.orderNsu,
-        redirect_url: redirectUrl,
-        webhook_url: webhookUrl,
-        items: [
-          {
-            name: input.service.name,
-            description: input.service.description,
-            quantity: 1,
-            price: input.service.priceInCents,
-          },
-        ],
-      }),
+      body: JSON.stringify(body),
     });
 
     const payload = (await response.json().catch(() => ({}))) as

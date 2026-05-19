@@ -6,6 +6,7 @@ import { ApiError } from '../services/api'
 import { getStoredSession } from '../services/auth'
 import { getActiveQuestionario } from '../services/questionarios'
 import type { QuestionarioCompleto } from '../services/questionarios'
+import { getServiceAccess } from '../services/servicos'
 import {
     completeExistingTeste,
     createAvaliado,
@@ -50,10 +51,16 @@ export function QuestionnairePage() {
             try {
                 setIsLoading(true)
                 setErrorMessage('')
-                const [activeQuestionario, userTestes] = await Promise.all([
+                const [access, activeQuestionario, userTestes] = await Promise.all([
+                    getServiceAccess(),
                     getActiveQuestionario(controller.signal),
                     listTestes(),
                 ])
+
+                if (!access.canUseTests) {
+                    setErrorMessage('Compre um pacote com testes para liberar o questionário.')
+                    return
+                }
 
                 const draft = userTestes.find((teste) =>
                     teste.status === 'em_andamento' &&
@@ -264,6 +271,15 @@ export function QuestionnairePage() {
                             <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-center">
                                 <h2 className="text-lg font-semibold text-red-300">Erro ao carregar</h2>
                                 <p className="mt-2 text-sm text-red-200">{errorMessage}</p>
+                                {errorMessage.includes('pacote') && (
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/nossos-servicos')}
+                                        className="mt-4 rounded-xl bg-(--primary) px-5 py-3 text-sm font-bold text-black transition hover:bg-(--primary-hover)"
+                                    >
+                                        Comprar pacote
+                                    </button>
+                                )}
                             </div>
                         )}
 

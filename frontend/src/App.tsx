@@ -10,6 +10,7 @@ import { ConfigPage } from './pages/Config'
 import { MyTestsPage } from './pages/MyTests'
 import { SchedulingPage } from './pages/Scheduling'
 import { QuestionnairePage } from './pages/Questionnaire'
+import { CheckoutReturnPage } from './pages/CheckoutReturn'
 import { AdminPage } from './pages/admin/Admin'
 import { UsersPage } from './pages/admin/Users'
 import Layout from './components/Layout'
@@ -227,6 +228,7 @@ function App() {
           <Route path="/config" element={<ConfigPage />} />
           <Route path="/home" element={<Home />} />
           <Route path="/nossos-servicos" element={<OurServices />} />
+          <Route path="/checkout/retorno" element={<CheckoutReturnPage />} />
           <Route path="/meus-testes" element={<MyTestsPage />} />
           <Route path="/meus-agendamentos" element={<SchedulingPage />} />
           <Route path="/questionario" element={<QuestionnairePage />} />

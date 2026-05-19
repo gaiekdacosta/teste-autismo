@@ -5,6 +5,8 @@ export type ServiceCatalogItem = {
   name: string
   description: string
   priceInCents: number
+  grantsTestAccess: boolean
+  grantsConsultationAccess: boolean
 }
 
 export type ServicePurchase = {
@@ -32,13 +34,66 @@ export type CreateServicePurchaseResponse = {
   checkoutUrl: string
 }
 
+export type DeleteServicePurchasesResponse = {
+  deletedCount: number
+}
+
+export type ServiceAccess = {
+  canUseTests: boolean
+  canScheduleConsultation: boolean
+  paidPurchases: ServicePurchase[]
+}
+
+export type ConfirmServicePurchaseInput = {
+  order_nsu: string
+  transaction_nsu?: string
+  slug?: string
+  invoice_slug?: string
+  capture_method?: string
+  receipt_url?: string
+}
+
+export type UpdateServiceInput = Partial<{
+  name: string
+  description: string
+  priceInCents: number
+}>
+
 export function listServices() {
   return request<ServiceCatalogItem[]>('/servicos')
 }
 
-export function createServicePurchase(serviceId: string) {
+export function updateService(id: ServiceCatalogItem['id'], body: UpdateServiceInput) {
+  return jsonRequest<ServiceCatalogItem>(`/servicos/${id}`, {
+    method: 'PUT',
+    body,
+  })
+}
+
+export function createServicePurchase(serviceId: string, testMode = false) {
   return jsonRequest<CreateServicePurchaseResponse>('/servicos/compras', {
     method: 'POST',
-    body: { serviceId },
+    body: { serviceId, testMode },
+  })
+}
+
+export function deleteServicePurchases() {
+  return jsonRequest<DeleteServicePurchasesResponse>('/servicos/compras', {
+    method: 'DELETE',
+  })
+}
+
+export function listServicePurchases() {
+  return request<ServicePurchase[]>('/servicos/compras')
+}
+
+export function getServiceAccess() {
+  return request<ServiceAccess>('/servicos/acesso')
+}
+
+export function confirmServicePurchase(input: ConfirmServicePurchaseInput) {
+  return jsonRequest<ServicePurchase>('/servicos/compras/confirmar', {
+    method: 'POST',
+    body: input,
   })
 }

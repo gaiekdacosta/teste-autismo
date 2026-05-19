@@ -16,6 +16,7 @@ import {
   updateTesteSchema,
 } from "../schemas/testes";
 import { TestesService } from "../services/testesService";
+import { ServicosService } from "../services/servicosService";
 import type {
   CompleteTesteInput,
   CreateAvaliadoInput,
@@ -36,7 +37,7 @@ type AvaliadoParams = {
 };
 
 export async function testesRoutes(fastify: FastifyInstance): Promise<void> {
-  const testesService = new TestesService();
+  const testesService = new TestesService(undefined, new ServicosService());
 
   // Rotas para testes
   fastify.get(

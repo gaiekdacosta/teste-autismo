@@ -54,7 +54,14 @@ const servicePurchaseSchema = {
 
 const serviceCatalogItemSchema = {
   type: "object",
-  required: ["id", "name", "description", "priceInCents"],
+  required: [
+    "id",
+    "name",
+    "description",
+    "priceInCents",
+    "grantsTestAccess",
+    "grantsConsultationAccess",
+  ],
   properties: {
     id: {
       type: "string",
@@ -63,6 +70,46 @@ const serviceCatalogItemSchema = {
     name: { type: "string" },
     description: { type: "string" },
     priceInCents: { type: "integer" },
+    grantsTestAccess: { type: "boolean" },
+    grantsConsultationAccess: { type: "boolean" },
+  },
+  additionalProperties: false,
+} as const;
+
+const serviceParamsSchema = {
+  type: "object",
+  required: ["id"],
+  properties: {
+    id: {
+      type: "string",
+      enum: ["testes-consultas", "apenas-testes", "apenas-consulta"],
+    },
+  },
+  additionalProperties: false,
+} as const;
+
+const infinitePayConfirmationBodySchema = {
+  type: "object",
+  required: ["order_nsu"],
+  properties: {
+    order_nsu: { type: "string" },
+    transaction_nsu: { type: "string" },
+    slug: { type: "string" },
+    invoice_slug: { type: "string" },
+    capture_method: { type: "string" },
+    receipt_url: { type: "string" },
+  },
+  additionalProperties: false,
+} as const;
+
+const infinitePayWebhookResponseSchema = {
+  type: "object",
+  required: ["success", "message", "purchaseId", "status"],
+  properties: {
+    success: { type: "boolean", const: true },
+    message: { type: "null" },
+    purchaseId: { type: "string" },
+    status: { type: "string" },
   },
   additionalProperties: false,
 } as const;
@@ -85,6 +132,7 @@ export const createServicePurchaseSchema: FastifySchema = {
         type: "string",
         enum: ["testes-consultas", "apenas-testes", "apenas-consulta"],
       },
+      testMode: { type: "boolean" },
     },
     additionalProperties: false,
   },
@@ -102,7 +150,82 @@ export const createServicePurchaseSchema: FastifySchema = {
   },
 };
 
+export const deleteServicePurchasesSchema: FastifySchema = {
+  response: {
+    200: {
+      type: "object",
+      required: ["deletedCount"],
+      properties: {
+        deletedCount: { type: "integer" },
+      },
+      additionalProperties: false,
+    },
+  },
+};
+
+export const updateServiceSchema: FastifySchema = {
+  params: serviceParamsSchema,
+  body: {
+    type: "object",
+    minProperties: 1,
+    properties: {
+      name: { type: "string", minLength: 1 },
+      description: { type: "string", minLength: 1 },
+      priceInCents: { type: "integer", minimum: 0 },
+    },
+    additionalProperties: false,
+  },
+  response: {
+    200: serviceCatalogItemSchema,
+    400: messageResponseSchema,
+    404: messageResponseSchema,
+  },
+};
+
+export const listServicePurchasesSchema: FastifySchema = {
+  response: {
+    200: {
+      type: "array",
+      items: servicePurchaseSchema,
+    },
+  },
+};
+
+export const confirmServicePurchaseSchema: FastifySchema = {
+  body: infinitePayConfirmationBodySchema,
+  response: {
+    200: servicePurchaseSchema,
+    400: messageResponseSchema,
+    404: messageResponseSchema,
+  },
+};
+
+export const getServiceAccessSchema: FastifySchema = {
+  response: {
+    200: {
+      type: "object",
+      required: ["canUseTests", "canScheduleConsultation", "paidPurchases"],
+      properties: {
+        canUseTests: { type: "boolean" },
+        canScheduleConsultation: { type: "boolean" },
+        paidPurchases: {
+          type: "array",
+          items: servicePurchaseSchema,
+        },
+      },
+      additionalProperties: false,
+    },
+  },
+};
+
 export const infinitePayWebhookSchema: FastifySchema = {
+  querystring: {
+    type: "object",
+    properties: {
+      token: { type: "string" },
+    },
+    additionalProperties: true,
+  },
   body: {
     type: "object",
     properties: {
@@ -116,8 +239,9 @@ export const infinitePayWebhookSchema: FastifySchema = {
     additionalProperties: true,
   },
   response: {
-    200: servicePurchaseSchema,
+    200: infinitePayWebhookResponseSchema,
     400: messageResponseSchema,
+    401: messageResponseSchema,
     404: messageResponseSchema,
   },
 };

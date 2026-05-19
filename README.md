@@ -53,7 +53,7 @@ O serviço de API também aceita `VITE_API_URL`. Se não for informado, o fronte
 
 Crie ou atualize `backend/.env` usando `backend/.env.example` como base. Para notificações e pagamentos, preencha as chaves do EmailJS e da InfinitePay. Enquanto a URL pública do webhook não existir, mantenha `INFINITEPAY_WEBHOOK_URL=` vazio.
 
-Antes de usar compras de serviço, execute o SQL em `docs/compras-servicos.sql` no Supabase.
+Antes de usar compras de serviço, execute o SQL em `docs/checkout-infinitepay.sql` no Supabase.
 
 ## Como rodar
 

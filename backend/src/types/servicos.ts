@@ -11,10 +11,27 @@ export type ServiceCatalogItem = {
   name: string;
   description: string;
   priceInCents: number;
+  grantsTestAccess: boolean;
+  grantsConsultationAccess: boolean;
 };
 
 export type CreateServicePurchaseInput = {
   serviceId: ServiceCatalogItem["id"];
+  testMode?: boolean;
+};
+
+export type UpdateServiceInput = Partial<{
+  name: string;
+  description: string;
+  priceInCents: number;
+}>;
+
+export type ServicePackageRow = {
+  service_id: ServiceCatalogItem["id"];
+  pacote: string;
+  descricao: string;
+  valor: number | string;
+  posicao: number | null;
 };
 
 export type InfinitePayWebhookInput = {
@@ -24,6 +41,13 @@ export type InfinitePayWebhookInput = {
   invoice_slug?: string;
   capture_method?: string;
   receipt_url?: string;
+};
+
+export type InfinitePayWebhookResponse = {
+  success: true;
+  message: null;
+  purchaseId: string;
+  status: ServicePurchaseStatus;
 };
 
 export type ServicePurchase = {
@@ -55,7 +79,17 @@ export type ServicePurchaseUpdateRow = Partial<
   Omit<ServicePurchase, "id" | "id_user" | "created_at" | "updated_at">
 >;
 
+export type DeletePurchasesResult = {
+  deletedCount: number;
+};
+
 export type CreateServicePurchaseResponse = {
   purchase: ServicePurchase;
   checkoutUrl: string;
+};
+
+export type ServiceAccess = {
+  canUseTests: boolean;
+  canScheduleConsultation: boolean;
+  paidPurchases: ServicePurchase[];
 };

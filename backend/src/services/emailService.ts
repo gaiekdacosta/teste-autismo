@@ -16,6 +16,8 @@ type NotifyNewUserInput = {
 type NotifyServicePurchaseInput = {
   customerName?: string | null;
   customerEmail?: string | null;
+  recipientEmail?: string | null;
+  recipientRole: "customer" | "admin";
   serviceName: string;
   servicePrice: string;
   paymentStatus: string;
@@ -64,10 +66,23 @@ export class EmailService {
   ): Promise<boolean> {
     if (!this.servicePurchaseTemplateId) return false;
 
+    const recipientEmail =
+      input.recipientEmail ??
+      (input.recipientRole === "customer" ? input.customerEmail : this.adminEmail);
+
+    if (!recipientEmail) return false;
+
     return this.sendEmail({
       templateId: this.servicePurchaseTemplateId,
       params: {
-        admin_email: this.adminEmail,
+        admin_email: recipientEmail,
+        to_email: recipientEmail,
+        recipient_email: recipientEmail,
+        recipient_role: input.recipientRole,
+        email_subject:
+          input.recipientRole === "customer"
+            ? "Parabens pela sua compra"
+            : "Nova compra realizada",
         customer_name: getOptionalText(input.customerName),
         customer_email: getOptionalText(input.customerEmail),
         service_name: input.serviceName,
@@ -81,7 +96,7 @@ export class EmailService {
   }
 
   private async sendEmail(input: SendEmailInput): Promise<boolean> {
-    if (!this.serviceId || !this.publicKey || !this.adminEmail) {
+    if (!this.serviceId || !this.publicKey) {
       return false;
     }
 

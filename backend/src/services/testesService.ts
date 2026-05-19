@@ -1,5 +1,6 @@
 import { badRequest, notFound } from "../errors/AppError";
 import { TestesRepository } from "../repositories/testesRepository";
+import { ServicosService } from "./servicosService";
 import { TESTE_STATUS } from "../types/testes";
 import type {
   Avaliado,
@@ -37,10 +38,13 @@ export type TestesRepositoryContract = Pick<
   | "updateContato"
 >;
 
+export type TestAccessServiceContract = Pick<ServicosService, "userCanUseTests">;
+
 export class TestesService {
   constructor(
     private readonly testesRepository: TestesRepositoryContract =
       new TestesRepository(),
+    private readonly testAccessService?: TestAccessServiceContract,
   ) {}
 
   async listByUser(userId: string): Promise<TesteCompleto[]> {
@@ -62,6 +66,7 @@ export class TestesService {
   }
 
   async create(input: CreateTesteInput, userId: string): Promise<TesteCompleto> {
+    await this.ensureTestAccess(userId);
     const testeId = await this.testesRepository.create(input, userId);
     return this.getById(testeId, userId);
   }
@@ -70,6 +75,8 @@ export class TestesService {
     input: CompleteTesteInput,
     userId: string,
   ): Promise<TesteCompleto> {
+    await this.ensureTestAccess(userId);
+
     if (input.id_avaliado) {
       await this.getAvaliado(input.id_avaliado, userId);
     }
@@ -97,6 +104,8 @@ export class TestesService {
     input: SaveTesteRespostasInput,
     userId: string,
   ): Promise<TesteCompleto> {
+    await this.ensureTestAccess(userId);
+
     const teste = await this.getById(id, userId);
 
     if (teste.status !== TESTE_STATUS.emAndamento) {
@@ -118,6 +127,8 @@ export class TestesService {
   }
 
   async completeExisting(id: string, userId: string): Promise<TesteCompleto> {
+    await this.ensureTestAccess(userId);
+
     const teste = await this.getById(id, userId);
 
     if (teste.status !== TESTE_STATUS.emAndamento) {
@@ -154,6 +165,7 @@ export class TestesService {
     input: UpdateTesteInput,
     userId: string,
   ): Promise<TesteCompleto> {
+    await this.ensureTestAccess(userId);
     await this.getById(id, userId);
     await this.testesRepository.update(id, input);
     return this.getById(id, userId);
@@ -224,6 +236,18 @@ export class TestesService {
   async updateContato(input: UpdateContatoInput): Promise<Contato> {
     await this.testesRepository.updateContato(input);
     return this.getContato();
+  }
+
+  private async ensureTestAccess(userId: string): Promise<void> {
+    if (!this.testAccessService) {
+      return;
+    }
+
+    const canUseTests = await this.testAccessService.userCanUseTests(userId);
+
+    if (!canUseTests) {
+      throw badRequest("Compre um pacote com testes para liberar o questionario.");
+    }
   }
 
   private buildResult(

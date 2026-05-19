@@ -25,6 +25,12 @@ import {
 import type { Administrador } from '../../services/administradores'
 import { createQuestionario, getActiveQuestionario, updateQuestionario } from '../../services/questionarios'
 import type { Alternativa, QuestionarioCompleto, QuestaoInput } from '../../services/questionarios'
+import {
+    deleteServicePurchases,
+    listServices,
+    updateService,
+    type ServiceCatalogItem,
+} from '../../services/servicos'
 
 type ServicePrice = {
     id: string
@@ -54,27 +60,6 @@ type AdministradorForm = {
     email: string
     ativo: boolean
 }
-
-const initialServices: ServicePrice[] = [
-    {
-        id: 'testes-consultas',
-        name: 'Testes + Consultas',
-        description: 'Pacote completo',
-        price: '450,00',
-    },
-    {
-        id: 'apenas-testes',
-        name: 'Apenas Testes',
-        description: 'Teste avulso',
-        price: '49,00',
-    },
-    {
-        id: 'apenas-consulta',
-        name: 'Apenas Consulta',
-        description: 'Consulta avulsa',
-        price: '400,00',
-    },
-]
 
 const inputClassName =
     'w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-3 text-[var(--foreground)] outline-none transition placeholder:text-[var(--muted)] focus:border-[var(--primary)]'
@@ -213,10 +198,29 @@ function buildDefaultQuestoesInput(): QuestaoInput[] {
     }))
 }
 
+const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+})
+
+function mapServiceToPrice(service: ServiceCatalogItem): ServicePrice {
+    return {
+        id: service.id,
+        name: service.name,
+        description: service.description,
+        price: currencyFormatter.format(service.priceInCents / 100),
+    }
+}
+
 export function AdminPage() {
     const [whatsapp, setWhatsapp] = useState('(85) 99999-9999')
     const [email, setEmail] = useState('contato@clinica.com')
-    const [services, setServices] = useState<ServicePrice[]>(initialServices)
+    const [services, setServices] = useState<ServicePrice[]>([])
+    const [isLoadingServices, setIsLoadingServices] = useState(true)
+    const [savingServiceId, setSavingServiceId] = useState<string | null>(null)
+    const [isDeletingPurchases, setIsDeletingPurchases] = useState(false)
+    const [servicesErrorMessage, setServicesErrorMessage] = useState('')
+    const [servicesSuccessMessage, setServicesSuccessMessage] = useState('')
     const [questionario, setQuestionario] = useState<QuestionarioCompleto | null>(null)
     const [questions, setQuestions] = useState<Question[]>([])
     const [isLoadingQuestionario, setIsLoadingQuestionario] = useState(true)
@@ -259,6 +263,114 @@ export function AdminPage() {
         return () => controller.abort()
     }, [])
 
+    function updateServiceField(serviceId: string, field: keyof ServicePrice, value: string) {
+        setServices((currentServices) =>
+            currentServices.map((service) =>
+                service.id === serviceId ? { ...service, [field]: value } : service,
+            ),
+        )
+    }
+
+    function parsePriceInCents(value: string) {
+        const normalizedValue = value
+            .replace(/[^\d,.-]/g, '')
+            .replace(/\./g, '')
+            .replace(',', '.')
+        const price = Number(normalizedValue)
+
+        if (!Number.isFinite(price) || price < 0) {
+            throw new Error('Informe um valor válido.')
+        }
+
+        return Math.round(price * 100)
+    }
+
+    async function saveService(service: ServicePrice) {
+        try {
+            setSavingServiceId(service.id)
+            setServicesErrorMessage('')
+            setServicesSuccessMessage('')
+
+            const updatedService = await updateService(service.id as ServiceCatalogItem['id'], {
+                name: service.name,
+                description: service.description,
+                priceInCents: parsePriceInCents(service.price),
+            })
+
+            setServices((currentServices) =>
+                currentServices.map((currentService) =>
+                    currentService.id === service.id
+                        ? mapServiceToPrice(updatedService)
+                        : currentService,
+                ),
+            )
+            setServicesSuccessMessage('Serviço atualizado com sucesso.')
+        } catch (error) {
+            setServicesErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Não foi possível salvar o serviço.',
+            )
+        } finally {
+            setSavingServiceId(null)
+        }
+    }
+
+    async function handleDeletePurchases() {
+        const confirmed = window.confirm('Apagar todos os registros de compras de serviço?')
+        if (!confirmed) return
+
+        try {
+            setIsDeletingPurchases(true)
+            setServicesErrorMessage('')
+            setServicesSuccessMessage('')
+            const result = await deleteServicePurchases()
+            setServicesSuccessMessage(`${result.deletedCount} registro(s) de compra apagado(s).`)
+        } catch (error) {
+            setServicesErrorMessage(
+                error instanceof Error
+                    ? error.message
+                    : 'Não foi possível apagar os registros de compras.',
+            )
+        } finally {
+            setIsDeletingPurchases(false)
+        }
+    }
+
+    useEffect(() => {
+        let isMounted = true
+
+        async function loadServices() {
+            try {
+                setIsLoadingServices(true)
+                setServicesErrorMessage('')
+                const data = await listServices()
+
+                if (isMounted) {
+                    setServices(data.map(mapServiceToPrice))
+                }
+            } catch (error) {
+                if (isMounted) {
+                    setServicesErrorMessage(
+                        error instanceof Error
+                            ? error.message
+                            : 'Não foi possível carregar os serviços.',
+                    )
+                }
+            } finally {
+                if (isMounted) {
+                    setIsLoadingServices(false)
+                }
+            }
+        }
+
+        void loadServices()
+
+        return () => {
+            isMounted = false
+        }
+    }, [])
+
     useEffect(() => {
         const controller = new AbortController()
 
@@ -289,14 +401,6 @@ export function AdminPage() {
             return groups
         }, {})
     }, [questions])
-
-    function updateService(serviceId: string, field: keyof ServicePrice, value: string) {
-        setServices((currentServices) =>
-            currentServices.map((service) =>
-                service.id === serviceId ? { ...service, [field]: value } : service,
-            ),
-        )
-    }
 
     function updateQuestionText(questionId: string, text: string) {
         setQuestions((currentQuestions) =>
@@ -716,16 +820,46 @@ export function AdminPage() {
                     </section>
 
                     <section className={sectionClassName}>
-                        <div className="mb-5 flex items-center gap-3">
-                            <FiDollarSign className="h-5 w-5 text-[var(--primary)]" />
-                            <h2 className="text-lg font-semibold">Serviços e pacotes</h2>
+                        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-center gap-3">
+                                <FiDollarSign className="h-5 w-5 text-[var(--primary)]" />
+                                <h2 className="text-lg font-semibold">Serviços e pacotes</h2>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => void handleDeletePurchases()}
+                                disabled={isDeletingPurchases}
+                                className="gap-2"
+                            >
+                                <FiTrash2 size={16} />
+                                {isDeletingPurchases ? 'Apagando...' : 'Apagar compras'}
+                            </Button>
                         </div>
 
                         <div className="space-y-3">
+                            {isLoadingServices && (
+                                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] p-4 text-sm text-[var(--muted)]">
+                                    Carregando serviços...
+                                </div>
+                            )}
+
+                            {!isLoadingServices && servicesErrorMessage && (
+                                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+                                    {servicesErrorMessage}
+                                </div>
+                            )}
+
+                            {!isLoadingServices && servicesSuccessMessage && (
+                                <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-200">
+                                    {servicesSuccessMessage}
+                                </div>
+                            )}
+
                             {services.map((service) => (
                                 <div
                                     key={service.id}
-                                    className="grid gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] p-4 lg:grid-cols-[1fr_1.2fr_160px]"
+                                    className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] p-4"
                                 >
                                     <label className="block space-y-2">
                                         <span className="text-sm font-medium">Nome</span>
@@ -733,7 +867,7 @@ export function AdminPage() {
                                             type="text"
                                             value={service.name}
                                             onChange={(event) =>
-                                                updateService(service.id, 'name', event.target.value)
+                                                updateServiceField(service.id, 'name', event.target.value)
                                             }
                                             className={inputClassName}
                                         />
@@ -741,28 +875,38 @@ export function AdminPage() {
 
                                     <label className="block space-y-2">
                                         <span className="text-sm font-medium">Descrição</span>
-                                        <input
-                                            type="text"
+                                        <textarea
                                             value={service.description}
                                             onChange={(event) =>
-                                                updateService(service.id, 'description', event.target.value)
+                                                updateServiceField(service.id, 'description', event.target.value)
                                             }
-                                            className={inputClassName}
+                                            className={`${inputClassName} min-h-28 resize-y leading-6`}
                                         />
                                     </label>
 
-                                    <label className="block space-y-2">
-                                        <span className="text-sm font-medium">Valor</span>
-                                        <input
-                                            type="text"
-                                            value={service.price}
-                                            onChange={(event) =>
-                                                updateService(service.id, 'price', event.target.value)
-                                            }
-                                            className={inputClassName}
-                                            placeholder="0,00"
-                                        />
-                                    </label>
+                                    <div className="grid gap-4 sm:grid-cols-[minmax(0,220px)_auto] sm:items-end">
+                                        <label className="block space-y-2">
+                                            <span className="text-sm font-medium">Valor</span>
+                                            <input
+                                                type="text"
+                                                value={service.price}
+                                                onChange={(event) =>
+                                                    updateServiceField(service.id, 'price', event.target.value)
+                                                }
+                                                className={inputClassName}
+                                                placeholder="0,00"
+                                            />
+                                        </label>
+
+                                        <Button
+                                            type="button"
+                                            onClick={() => void saveService(service)}
+                                            disabled={savingServiceId === service.id}
+                                            className="w-full sm:w-auto"
+                                        >
+                                            {savingServiceId === service.id ? 'Salvando...' : 'Salvar serviço'}
+                                        </Button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

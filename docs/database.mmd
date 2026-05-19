@@ -1,111 +1,142 @@
 classDiagram
 
-class AuthUser {
-  +uuid id
+AUTH_USERS {
+    uuid id PK
 }
 
-class Agendamento {
-  +uuid id
-  +uuid id_user
-  +uuid id_teste
-  +text status
-  +timestamptz data_agendamento
-  +timestamptz created_at
-  +timestamptz updated_at
+ADMINISTRADORES {
+    uuid id PK
+    uuid id_user FK "UNIQUE"
+    text email "UNIQUE"
+    boolean ativo
+    text nivel "admin | super_admin"
+    timestamptz created_at
+    timestamptz updated_at
 }
 
-class Alternativa {
-  +uuid id
-  +uuid id_questao
-  +int posicao
-  +text texto
-  +int valor
-  +timestamptz created_at
-  +timestamptz updated_at
+AGENDAMENTOS {
+    uuid id PK
+    uuid id_user FK
+    uuid id_teste FK "nullable"
+    text status "pendente | confirmado | cancelado | concluido"
+    timestamptz data_agendamento
+    timestamptz created_at
+    timestamptz updated_at
 }
 
-class Avaliado {
-  +uuid id
-  +uuid id_user
-  +text nome
-  +date data_nascimento
-  +text genero
-  +timestamptz created_at
-  +timestamptz updated_at
+ALTERNATIVAS {
+    uuid id PK
+    uuid id_questao FK
+    integer posicao
+    text texto
+    integer valor
+    timestamptz created_at
+    timestamptz updated_at
 }
 
-class Contato {
-  +uuid id
-  +text whatsapp
-  +text email
-  +timestamptz created_at
-  +timestamptz updated_at
+AVALIADOS {
+    uuid id PK
+    uuid id_user FK
+    text nome
+    timestamptz created_at
+    timestamptz updated_at
 }
 
-class Questionario {
-  +uuid id
-  +text titulo
-  +text descricao
-  +int versao
-  +boolean ativo
-  +timestamptz created_at
-  +timestamptz updated_at
+COMPRAS_SERVICOS {
+    uuid id PK
+    uuid id_user FK
+    text customer_name
+    text customer_email
+    text service_id
+    text service_name
+    integer service_price_cents
+    text status "pending | paid"
+    text checkout_url
+    text order_nsu "UNIQUE"
+    text invoice_slug
+    text transaction_nsu
+    text capture_method
+    text receipt_url
+    timestamptz notified_admin_at
+    timestamptz created_at
+    timestamptz updated_at
 }
 
-class Questao {
-  +uuid id
-  +uuid id_questionario
-  +int posicao
-  +text pergunta
-  +timestamptz created_at
-  +timestamptz updated_at
+CONTATOS {
+    uuid id PK
+    text whatsapp
+    text email
+    timestamptz created_at
+    timestamptz updated_at
 }
 
-class Resposta {
-  +uuid id
-  +uuid id_teste
-  +uuid id_questao
-  +uuid id_alternativa
-  +int valor
-  +timestamptz created_at
+QUESTIONARIO {
+    uuid id PK
+    text titulo
+    text descricao
+    integer versao
+    boolean ativo
+    timestamptz created_at
+    timestamptz updated_at
 }
 
-class ServicoPacote {
-  +uuid id
-  +text pacote
-  +text descricao
-  +numeric valor
-  +int posicao
-  +timestamptz created_at
-  +timestamptz updated_at
+QUESTOES {
+    uuid id PK
+    uuid id_questionario FK
+    integer posicao
+    text pergunta
+    timestamptz created_at
+    timestamptz updated_at
 }
 
-class Teste {
-  +uuid id
-  +uuid id_user
-  +uuid id_avaliado
-  +uuid id_questionario
-  +text status
-  +int pontuacao_total
-  +text classificacao
-  +timestamptz started_at
-  +timestamptz finished_at
-  +timestamptz created_at
-  +timestamptz updated_at
+RESPOSTAS {
+    uuid id PK
+    uuid id_teste FK
+    uuid id_questao FK
+    uuid id_alternativa FK
+    integer valor
+    timestamptz created_at
 }
 
-AuthUser "1" --> "0..*" Avaliado : possui
-AuthUser "1" --> "0..*" Teste : realiza
-AuthUser "1" --> "0..*" Agendamento : agenda
+SERVICOS_PACOTES {
+    uuid id PK
+    text pacote
+    text descricao
+    numeric valor
+    integer posicao
+    timestamptz created_at
+    timestamptz updated_at
+}
 
-Questionario "1" --> "0..*" Questao : possui
-Questao "1" --> "0..*" Alternativa : possui
+TESTES {
+    uuid id PK
+    uuid id_user FK
+    uuid id_avaliado FK
+    uuid id_questionario FK
+    text status "em_andamento | concluido"
+    integer pontuacao_total
+    text classificacao
+    timestamptz started_at
+    timestamptz finished_at
+    timestamptz created_at
+    timestamptz updated_at
+}
 
-Avaliado "1" --> "0..*" Teste : é avaliado em
-Questionario "1" --> "0..*" Teste : aplicado em
+AUTH_USERS ||--o| ADMINISTRADORES : "id_user"
+AUTH_USERS ||--o{ AGENDAMENTOS : "id_user"
+AUTH_USERS ||--o{ AVALIADOS : "id_user"
+AUTH_USERS ||--o{ COMPRAS_SERVICOS : "id_user"
+AUTH_USERS ||--o{ TESTES : "id_user"
 
-Teste "1" --> "0..*" Resposta : possui
-Questao "1" --> "0..*" Resposta : respondida em
-Alternativa "1" --> "0..*" Resposta : selecionada em
+QUESTIONARIO ||--o{ QUESTOES : "id_questionario"
+QUESTIONARIO ||--o{ TESTES : "id_questionario"
 
-Teste "1" --> "0..1" Agendamento : pode gerar
+QUESTOES ||--o{ ALTERNATIVAS : "id_questao"
+QUESTOES ||--o{ RESPOSTAS : "id_questao"
+
+ALTERNATIVAS ||--o{ RESPOSTAS : "id_alternativa"
+
+AVALIADOS ||--o{ TESTES : "id_avaliado"
+
+TESTES ||--o{ RESPOSTAS : "id_teste"
+TESTES ||--o{ AGENDAMENTOS : "id_teste"
