@@ -2,14 +2,6 @@ import { config } from "dotenv";
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { AppError } from "./errors/AppError";
-import { authPlugin } from "./middlewares/auth";
-import { authRoutes } from "./routes/auth";
-import { healthRoutes } from "./routes/health";
-import { questionariosRoutes } from "./routes/questionarios";
-import { testesRoutes } from "./routes/testes";
-import { usuariosRoutes } from "./routes/usuarios";
-import { administradoresRoutes } from "./routes/administradores";
-import { servicosRoutes } from "./routes/servicos";
 
 config();
 
@@ -60,6 +52,30 @@ export async function buildApp() {
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Accept"],
   });
+
+  fastify.get("/", async () => {
+    return { status: "ok", service: "teste-autismo-backend" };
+  });
+
+  const [
+    { authPlugin },
+    { authRoutes },
+    { healthRoutes },
+    { questionariosRoutes },
+    { testesRoutes },
+    { usuariosRoutes },
+    { administradoresRoutes },
+    { servicosRoutes },
+  ] = await Promise.all([
+    import("./middlewares/auth"),
+    import("./routes/auth"),
+    import("./routes/health"),
+    import("./routes/questionarios"),
+    import("./routes/testes"),
+    import("./routes/usuarios"),
+    import("./routes/administradores"),
+    import("./routes/servicos"),
+  ]);
 
   await fastify.register(authPlugin);
   await fastify.register(authRoutes);
