@@ -1,10 +1,10 @@
-import { buildApp } from "./app";
+import { createFastifyApp } from "./createFastifyApp";
 
 const port = Number(process.env.PORT ?? 3000);
 
 async function start(): Promise<void> {
   try {
-    const fastify = await buildApp();
+    const fastify = await createFastifyApp();
 
     await fastify.listen({
       port,

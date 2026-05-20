@@ -25,7 +25,7 @@ const frontendUrls = Array.from(
   new Set([...configuredFrontendUrls, ...devFrontendUrls]),
 );
 
-export async function buildApp() {
+export async function createFastifyApp() {
   const fastify = Fastify({
     logger: {
       level: "warn",

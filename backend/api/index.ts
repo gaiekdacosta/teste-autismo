@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { buildApp } from "../src/app";
+import { createFastifyApp } from "../src/createFastifyApp";
 
 type InjectMethod =
   | "DELETE"
@@ -10,10 +10,10 @@ type InjectMethod =
   | "PUT"
   | "OPTIONS";
 
-let appPromise: ReturnType<typeof buildApp> | undefined;
+let appPromise: ReturnType<typeof createFastifyApp> | undefined;
 
 async function getApp() {
-  appPromise ??= buildApp();
+  appPromise ??= createFastifyApp();
   const app = await appPromise;
   await app.ready();
 
