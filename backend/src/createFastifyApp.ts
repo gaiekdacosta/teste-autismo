@@ -12,10 +12,18 @@ const defaultFrontendUrls = [
   "http://127.0.0.1:5174",
 ];
 
+function normalizeOrigin(origin: string): string | undefined {
+  try {
+    return new URL(origin.trim()).origin;
+  } catch {
+    return undefined;
+  }
+}
+
 const configuredFrontendUrls = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean)
+    .map(normalizeOrigin)
+    .filter((origin): origin is string => Boolean(origin))
   : [];
 
 const devFrontendUrls =
