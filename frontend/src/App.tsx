@@ -1,26 +1,38 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
+import {
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom'
+
 import { LoginPage } from './pages/Login'
 import { RegisterPage } from './pages/Register'
 import { Home } from './pages/Home'
 import { OurServices } from './pages/OurServices'
+
 import { supabase } from './utils/supabase'
+
 import { ConfigPage } from './pages/Config'
 import { MyTestsPage } from './pages/MyTests'
 import { SchedulingPage } from './pages/Scheduling'
 import { QuestionnairePage } from './pages/Questionnaire'
 import { CheckoutReturnPage } from './pages/CheckoutReturn'
+
 import { AdminPage } from './pages/admin/Admin'
 import { UsersPage } from './pages/admin/Users'
+
 import Layout from './components/Layout'
+
 import {
   clearCachedAdminAccess,
   getAdministradorAtual,
   getCachedAdminAccess,
 } from './services/administradores'
-import { notifyCurrentUserRegistration } from './services/auth'
 
+import { notifyCurrentUserRegistration } from './services/auth'
 
 function persistAuthSession(session: Session | null) {
   if (!session?.access_token) {
@@ -29,20 +41,28 @@ function persistAuthSession(session: Session | null) {
     return
   }
 
-  localStorage.setItem('auth.session', JSON.stringify({
-    tokens: {
-      accessToken: session.access_token,
-      refreshToken: session.refresh_token,
-      expiresIn: session.expires_in,
-    },
-    user: {
-      id: session.user.id,
-      email: session.user.email!,
-      name: session.user.user_metadata?.name || session.user.user_metadata?.full_name,
-      phone: session.user.user_metadata?.phone || session.user.phone,
-      avatarUrl: session.user.user_metadata?.avatar_url,
-    },
-  }))
+  localStorage.setItem(
+    'auth.session',
+    JSON.stringify({
+      tokens: {
+        accessToken: session.access_token,
+        refreshToken: session.refresh_token,
+        expiresIn: session.expires_in,
+      },
+      user: {
+        id: session.user.id,
+        email: session.user.email!,
+        name:
+          session.user.user_metadata?.name ||
+          session.user.user_metadata?.full_name,
+        phone:
+          session.user.user_metadata?.phone ||
+          session.user.phone,
+        avatarUrl:
+          session.user.user_metadata?.avatar_url,
+      },
+    }),
+  )
 }
 
 type ProtectedRouteProps = {
@@ -69,7 +89,9 @@ function ProtectedRoute({
       <Navigate
         to="/login"
         replace
-        state={{ from: `${location.pathname}${location.search}` }}
+        state={{
+          from: `${location.pathname}${location.search}`,
+        }}
       />
     )
   }
@@ -82,7 +104,10 @@ type AdminRouteProps = {
   isLoading: boolean
 }
 
-function AdminRoute({ hasAdminAccess, isLoading }: AdminRouteProps) {
+function AdminRoute({
+  hasAdminAccess,
+  isLoading,
+}: AdminRouteProps) {
   if (isLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-6 text-sm text-[var(--muted)]">
@@ -99,15 +124,28 @@ function AdminRoute({ hasAdminAccess, isLoading }: AdminRouteProps) {
 }
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isAuthLoading, setIsAuthLoading] = useState(true)
-  const [hasAdminAccess, setHasAdminAccess] = useState(() => getCachedAdminAccess() === true)
-  const [isAdminLoading, setIsAdminLoading] = useState(false)
-  const [hasCheckedAdminAccess, setHasCheckedAdminAccess] = useState(false)
-  const [adminCheckVersion, setAdminCheckVersion] = useState(0)
+  const [isAuthenticated, setIsAuthenticated] =
+    useState(false)
+
+  const [isAuthLoading, setIsAuthLoading] =
+    useState(true)
+
+  const cachedAdminAccess =
+    getCachedAdminAccess() === true
+
+  const [hasAdminAccess, setHasAdminAccess] =
+    useState(cachedAdminAccess)
+
+  const [isAdminLoading, setIsAdminLoading] =
+    useState(!cachedAdminAccess)
+
+  const [adminCheckVersion, setAdminCheckVersion] =
+    useState(0)
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         persistAuthSession(session)
 
@@ -115,41 +153,66 @@ function App() {
           setIsAuthenticated(false)
           setHasAdminAccess(false)
           setIsAdminLoading(false)
-          setHasCheckedAdminAccess(false)
+
           return
         }
 
         setIsAuthenticated(true)
-        setHasAdminAccess(getCachedAdminAccess() === true)
-        setIsAdminLoading(false)
-        setHasCheckedAdminAccess(false)
-        setAdminCheckVersion((currentVersion) => currentVersion + 1)
-      }
+
+        setHasAdminAccess(
+          getCachedAdminAccess() === true,
+        )
+
+        setIsAdminLoading(
+          getCachedAdminAccess() !== true,
+        )
+
+        setAdminCheckVersion(
+          (currentVersion) =>
+            currentVersion + 1,
+        )
+      },
     )
 
     async function refreshSession() {
       try {
-        const { data, error } = await supabase.auth.getSession()
+        const { data, error } =
+          await supabase.auth.getSession()
+
         if (error || !data.session) {
           setIsAuthenticated(false)
           setHasAdminAccess(false)
           setIsAdminLoading(false)
-          setHasCheckedAdminAccess(false)
+
           persistAuthSession(null)
         } else {
           setIsAuthenticated(true)
-          setHasAdminAccess(getCachedAdminAccess() === true)
-          setIsAdminLoading(false)
-          setHasCheckedAdminAccess(false)
-          setAdminCheckVersion((currentVersion) => currentVersion + 1)
+
+          setHasAdminAccess(
+            getCachedAdminAccess() === true,
+          )
+
+          setIsAdminLoading(
+            getCachedAdminAccess() !== true,
+          )
+
+          setAdminCheckVersion(
+            (currentVersion) =>
+              currentVersion + 1,
+          )
+
           persistAuthSession(data.session)
         }
       } catch (err) {
-        console.error('Erro ao renovar sessão:', err)
+        console.error(
+          'Erro ao renovar sessão:',
+          err,
+        )
+
         setIsAuthenticated(false)
         setHasAdminAccess(false)
         setIsAdminLoading(false)
-        setHasCheckedAdminAccess(false)
+
         persistAuthSession(null)
       } finally {
         setIsAuthLoading(false)
@@ -174,17 +237,18 @@ function App() {
 
     async function checkAdminAccess() {
       try {
-        setIsAdminLoading(true)
+        if (!hasAdminAccess) {
+          setIsAdminLoading(true)
+        }
+
         await getAdministradorAtual()
 
         if (isActive) {
           setHasAdminAccess(true)
-          setHasCheckedAdminAccess(true)
         }
       } catch {
         if (isActive) {
           setHasAdminAccess(false)
-          setHasCheckedAdminAccess(true)
         }
       } finally {
         if (isActive) {
@@ -198,53 +262,128 @@ function App() {
     return () => {
       isActive = false
     }
-  }, [isAuthenticated, isAuthLoading, adminCheckVersion])
+  }, [
+    isAuthenticated,
+    isAuthLoading,
+    adminCheckVersion,
+    hasAdminAccess,
+  ])
 
   useEffect(() => {
-    if (isAuthLoading || !isAuthenticated) return
+    if (
+      isAuthLoading ||
+      !isAuthenticated
+    )
+      return
 
-    void notifyCurrentUserRegistration().catch(() => {
-      // A notificacao nao deve bloquear o acesso do usuario.
-    })
-  }, [isAuthenticated, isAuthLoading, adminCheckVersion])
+    void notifyCurrentUserRegistration().catch(
+      () => {
+        // A notificacao nao deve bloquear o acesso do usuario.
+      },
+    )
+  }, [
+    isAuthenticated,
+    isAuthLoading,
+    adminCheckVersion,
+  ])
 
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<LoginPage />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/"
+          element={<LoginPage />}
+        />
+
+        <Route
+          path="/login"
+          element={<LoginPage />}
+        />
+
         <Route
           path="/register"
           element={<RegisterPage />}
         />
+
         <Route
           element={
             <ProtectedRoute
-              isAuthenticated={isAuthenticated}
+              isAuthenticated={
+                isAuthenticated
+              }
               isLoading={isAuthLoading}
             />
           }
         >
-          <Route path="/config" element={<ConfigPage />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/nossos-servicos" element={<OurServices />} />
-          <Route path="/checkout/retorno" element={<CheckoutReturnPage />} />
-          <Route path="/meus-testes" element={<MyTestsPage />} />
-          <Route path="/meus-agendamentos" element={<SchedulingPage />} />
-          <Route path="/questionario" element={<QuestionnairePage />} />
+          <Route
+            path="/config"
+            element={<ConfigPage />}
+          />
+
+          <Route
+            path="/home"
+            element={<Home />}
+          />
+
+          <Route
+            path="/nossos-servicos"
+            element={<OurServices />}
+          />
+
+          <Route
+            path="/checkout/retorno"
+            element={<CheckoutReturnPage />}
+          />
+
+          <Route
+            path="/meus-testes"
+            element={<MyTestsPage />}
+          />
+
+          <Route
+            path="/meus-agendamentos"
+            element={<SchedulingPage />}
+          />
+
+          <Route
+            path="/questionario"
+            element={<QuestionnairePage />}
+          />
+
           <Route
             element={
               <AdminRoute
-                hasAdminAccess={hasAdminAccess}
-                isLoading={isAdminLoading || !hasCheckedAdminAccess}
+                hasAdminAccess={
+                  hasAdminAccess
+                }
+                isLoading={
+                  isAdminLoading &&
+                  !hasAdminAccess
+                }
               />
             }
           >
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/users" element={<UsersPage />} />
+            <Route
+              path="/admin"
+              element={<AdminPage />}
+            />
+
+            <Route
+              path="/users"
+              element={<UsersPage />}
+            />
           </Route>
         </Route>
-        <Route path="*" element={<Navigate to="/login" replace />} />
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/login"
+              replace
+            />
+          }
+        />
       </Routes>
     </Layout>
   )

@@ -75,6 +75,14 @@ export class QuestionariosService {
     await this.questionariosRepository.updateScalars(id, input);
 
     if (input.questoes) {
+      const hasLinkedTests = await this.questionariosRepository.hasLinkedTests(id);
+
+      if (hasLinkedTests) {
+        throw conflict(
+          "Não é possível alterar as perguntas de um questionário que já possui testes respondidos.",
+        );
+      }
+
       await this.questionariosRepository.replaceQuestoes(id, input.questoes);
     }
 

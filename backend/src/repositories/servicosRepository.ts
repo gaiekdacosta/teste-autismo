@@ -15,7 +15,7 @@ export class ServicosRepository {
   async listServicePackages(): Promise<ServicePackageRow[]> {
     const { data, error } = await supabaseAdmin
       .from("servicos_pacotes")
-      .select("service_id, pacote, descricao, valor, posicao")
+      .select("service_id, pacote, descricao, valor, posicao, ativo")
       .order("posicao", { ascending: true });
 
     if (error) {
@@ -29,7 +29,7 @@ export class ServicosRepository {
     serviceId: string,
     input: UpdateServiceInput,
   ): Promise<ServicePackageRow | null> {
-    const updateData: Record<string, string | number> = {};
+    const updateData: Record<string, string | number | boolean> = {};
 
     if (input.name !== undefined) {
       updateData.pacote = input.name;
@@ -43,11 +43,15 @@ export class ServicosRepository {
       updateData.valor = input.priceInCents / 100;
     }
 
+    if (input.active !== undefined) {
+      updateData.ativo = input.active;
+    }
+
     const { data, error } = await supabaseAdmin
       .from("servicos_pacotes")
       .update(updateData)
       .eq("service_id", serviceId)
-      .select("service_id, pacote, descricao, valor, posicao")
+      .select("service_id, pacote, descricao, valor, posicao, ativo")
       .maybeSingle();
 
     if (error) {

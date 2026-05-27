@@ -15,7 +15,7 @@ export class AdministradoresService {
   constructor(
     private readonly administradoresRepository: AdministradoresRepositoryContract =
       new AdministradoresRepository(),
-  ) {}
+  ) { }
 
   list(): Promise<Administrador[]> {
     return this.administradoresRepository.findAll();
@@ -73,7 +73,7 @@ export class AdministradoresService {
     const authUser = await this.administradoresRepository.findAuthUserByEmail(normalizedEmail);
 
     if (!authUser) {
-      throw new AppError("Usuário não encontrado no Auth.", 404);
+      throw new AppError("Usuário não encontrado nos registros de login.", 404);
     }
 
     return authUser;

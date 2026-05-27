@@ -7,6 +7,7 @@ export type ServiceCatalogItem = {
   priceInCents: number
   grantsTestAccess: boolean
   grantsConsultationAccess: boolean
+  active?: boolean
 }
 
 export type ServicePurchase = {
@@ -57,6 +58,7 @@ export type UpdateServiceInput = Partial<{
   name: string
   description: string
   priceInCents: number
+  active: boolean
 }>
 
 export function listServices() {

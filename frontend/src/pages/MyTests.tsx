@@ -146,10 +146,10 @@ export function MyTestsPage() {
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <Navbar />
-      
+
       <main className="md:ml-[280px] min-h-screen">
         <div className="h-16 md:hidden" />
-        
+
         <div className="px-4 pb-10 pt-4 sm:px-6 md:px-8 md:py-8">
           <div className="mx-auto max-w-5xl">
             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -289,13 +289,15 @@ export function MyTestsPage() {
                     </div>
 
                     <div className="mt-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4">
-                      <p className="text-sm font-medium leading-6 text-yellow-300">
-                        Este resultado é preliminar e não possui valor diagnóstico. Para confirmação ou interpretação adequada, procure acompanhamento profissional.
+                      <p className="text-sm text-center font-medium leading-6 text-yellow-300">
+                        Este resultado é preliminar e não possui valor diagnóstico.
+                        Para confirmação, interpretação adequada e possível emissão de <br />
+                        <b>LAUDO MÉDICO</b>, recomendamos avaliação profissional em consulta.
                       </p>
                     </div>
                   </section>
 
-                  
+
                 </>
               )}
             </div>

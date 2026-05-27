@@ -58,6 +58,7 @@ export type Contato = {
   id: string
   whatsapp: string
   email: string
+  mensagem: string
   created_at: string
   updated_at: string
 }
@@ -155,7 +156,7 @@ export function createContato(data: { whatsapp: string; email: string }) {
   })
 }
 
-export function updateContato(data: Partial<{ whatsapp: string; email: string }>) {
+export function updateContato(data: Partial<{ whatsapp: string; email: string; mensagem: string }>) {
   return jsonRequest<Contato>('/contato', {
     method: 'PUT',
     body: data,

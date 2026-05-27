@@ -522,6 +522,7 @@ export class TestesRepository {
       id: randomUUID(),
       whatsapp: input.whatsapp.trim(),
       email: input.email.trim(),
+      mensagem: input.mensagem.trim(),
     };
 
     const { error } = await supabaseAdmin.from("contatos").insert(contato);
@@ -534,6 +535,11 @@ export class TestesRepository {
   }
 
   async updateContato(input: UpdateContatoInput): Promise<void> {
+    const contato = await this.findContato();
+    if (!contato) {
+      throw new Error("Nenhum contato cadastrado para atualizar.");
+    }
+
     const updateData: Partial<Omit<Contato, "id" | "created_at">> = {};
 
     if (input.whatsapp !== undefined) {
@@ -544,11 +550,18 @@ export class TestesRepository {
       updateData.email = input.email.trim();
     }
 
+    if (input.mensagem !== undefined) {
+      updateData.mensagem = input.mensagem.trim();
+    }
+
     if (Object.keys(updateData).length === 0) {
       return;
     }
 
-    const { error } = await supabaseAdmin.from("contatos").update(updateData);
+    const { error } = await supabaseAdmin
+      .from("contatos")
+      .update(updateData)
+      .eq("id", contato.id);
 
     if (error) {
       throwSupabaseError("atualizar contato", error);

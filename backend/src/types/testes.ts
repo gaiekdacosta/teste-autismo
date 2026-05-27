@@ -85,6 +85,7 @@ export type Contato = {
   id: string;
   whatsapp: string;
   email: string;
+  mensagem: string;
   created_at: string;
   updated_at: string;
 };
@@ -92,11 +93,13 @@ export type Contato = {
 export type CreateContatoInput = {
   whatsapp: string;
   email: string;
+  mensagem: string;
 };
 
 export type UpdateContatoInput = Partial<{
   whatsapp: string;
   email: string;
+  mensagem: string;
 }>;
 
 export type TesteInsertRow = Omit<Teste, "id" | "created_at" | "updated_at"> & {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FaWhatsapp, FaTimes } from 'react-icons/fa';
+import { getContato } from '../services/testes';
 
 interface WhatsappButtonProps {
     phoneNumber?: string;
@@ -7,21 +8,51 @@ interface WhatsappButtonProps {
 }
 
 export default function WhatsappButton({
-    phoneNumber = '5511999999999',
-    message = 'Olá! Gostaria de mais informações.'
+    phoneNumber: propPhoneNumber,
+    message: propMessage
 }: WhatsappButtonProps) {
     const [isMinimized, setIsMinimized] = useState(() => {
         const saved = localStorage.getItem('whatsapp-minimized');
         return saved === 'true';
     });
 
+    const [whatsapp, setWhatsapp] = useState(propPhoneNumber || '');
+    const [mensagem, setMensagem] = useState(propMessage || '');
+
     useEffect(() => {
         localStorage.setItem('whatsapp-minimized', String(isMinimized));
     }, [isMinimized]);
 
+    useEffect(() => {
+        async function fetchContact() {
+            try {
+                const data = await getContato();
+                if (data) {
+                    if (!propPhoneNumber && data.whatsapp) {
+                        setWhatsapp(data.whatsapp);
+                    }
+                    if (!propMessage && data.mensagem) {
+                        setMensagem(data.mensagem);
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao buscar dados de contato para o WhatsApp:', error);
+            }
+        }
+        fetchContact();
+    }, [propPhoneNumber, propMessage]);
+
+    const activePhoneNumber = whatsapp || propPhoneNumber || '5511999999999';
+    const activeMessage = mensagem || propMessage || 'Olá! Gostaria de mais informações.';
+
     const handleClick = () => {
-        const encodedMessage = encodeURIComponent(message);
-        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+        let cleanNumber = activePhoneNumber.replace(/\D/g, '');
+        // Se o número for brasileiro e não tiver código de país, adiciona 55
+        if (cleanNumber.length === 10 || cleanNumber.length === 11) {
+            cleanNumber = '55' + cleanNumber;
+        }
+        const encodedMessage = encodeURIComponent(activeMessage);
+        const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodedMessage}`;
         window.open(whatsappUrl, '_blank');
     };
 

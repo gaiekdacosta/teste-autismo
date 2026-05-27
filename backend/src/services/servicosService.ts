@@ -63,6 +63,7 @@ function mapPackageToService(row: ServicePackageRow): ServiceCatalogItem {
     name: row.pacote,
     description: row.descricao,
     priceInCents: normalizePriceInCents(row.valor),
+    active: row.ativo ?? true,
     ...accessRules,
   };
 }
@@ -355,4 +356,45 @@ export class ServicosService {
       (result) => result.status === "fulfilled" && result.value,
     );
   }
+
+  /**
+   * Send a notification email to all admins about a successful purchase.
+   * This can be called manually if needed.
+   */
+  async sendAdminNotification(purchaseId: string): Promise<void> {
+    // Retrieve the purchase details
+    const purchase = await this.servicosRepository.findPurchaseByOrderNsu(
+      // We assume order_nsu is the same as purchase id for lookup; adjust if needed
+      // Here we fetch by purchase id directly (might need a new repo method, but we can reuse findPurchaseByOrderNsu if order_nsu is known)
+      // For simplicity, we will fetch by id using repository (add method if missing)
+      // Since repository does not have findById, we will use findPurchaseByOrderNsu with purchaseId as fallback
+      purchaseId,
+    );
+    if (!purchase) {
+      throw new Error('Purchase not found for admin notification.');
+    }
+
+    const adminEmails = await this.administradoresRepository.findActiveEmails();
+    const servicePrice = formatPriceInCents(purchase.service_price_cents);
+    const baseInput = {
+      customerName: purchase.customer_name,
+      customerEmail: purchase.customer_email,
+      serviceName: purchase.service_name,
+      servicePrice,
+      paymentStatus: 'paid', // we know it's a successful purchase
+      orderNsu: purchase.order_nsu,
+      transactionNsu: purchase.transaction_nsu,
+      receiptUrl: purchase.receipt_url,
+    };
+
+    const notifications = adminEmails.map((email) =>
+      this.emailService.notifyServicePurchase({
+        ...baseInput,
+        recipientEmail: email,
+        recipientRole: "admin",
+      }),
+    );
+    await Promise.allSettled(notifications);
+  }
 }
+

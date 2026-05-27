@@ -60,11 +60,12 @@ export function OurServices() {
                 setErrorMessage('')
 
                 const servicesResponse = await listServices()
+                const activeServices = servicesResponse.filter(service => service.active !== false)
 
                 if (!isMounted) return
 
-                setServices(servicesResponse)
-                setSelectedServiceId(servicesResponse[0]?.id ?? null)
+                setServices(activeServices)
+                setSelectedServiceId(activeServices[0]?.id ?? null)
             } catch (error) {
                 if (!isMounted) return
 

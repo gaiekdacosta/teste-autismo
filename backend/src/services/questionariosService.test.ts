@@ -278,6 +278,22 @@ describe("QuestionariosService", () => {
     assert.equal(questionario.questoes[0].pergunta, "Nova pergunta");
   });
 
+  it("bloqueia atualizacao de questoes quando ha testes vinculados", async () => {
+    const repository = new FakeQuestionariosRepository([
+      buildQuestionario({ id: "questionario-1" }),
+    ]);
+    repository.addLinkedTests("questionario-1");
+    const service = new QuestionariosService(repository);
+
+    await assertAppError(
+      () =>
+        service.update("questionario-1", {
+          questoes: buildQuestaoInput(),
+        }),
+      409,
+    );
+  });
+
   it("ativa um questionario e desativa os demais", async () => {
     const service = new QuestionariosService(
       new FakeQuestionariosRepository([

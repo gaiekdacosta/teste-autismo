@@ -179,22 +179,40 @@ export async function testesRoutes(fastify: FastifyInstance): Promise<void> {
     },
   );
 
-  // Rotas para contato (global, sem autenticação necessária)
+  // Rotas para contato
   fastify.get(
     "/contato",
     { schema: getContatoSchema },
-    async () => testesService.getContato(),
+    async () => {
+      return testesService.getContato();
+    },
   );
 
   fastify.post<{ Body: CreateContatoInput }>(
     "/contato",
-    { schema: createContatoSchema },
-    async (request) => testesService.createContato(request.body),
+    { schema: createContatoSchema, onRequest: [fastify.authenticate] },
+    async (request) => {
+      const userId = request.user?.id;
+
+      if (!userId) {
+        throw new Error("Unauthorized");
+      }
+
+      return testesService.createContato(request.body);
+    },
   );
 
   fastify.put<{ Body: UpdateContatoInput }>(
     "/contato",
-    { schema: updateContatoSchema },
-    async (request) => testesService.updateContato(request.body),
+    { schema: updateContatoSchema, onRequest: [fastify.authenticate] },
+    async (request) => {
+      const userId = request.user?.id;
+
+      if (!userId) {
+        throw new Error("Unauthorized");
+      }
+
+      return testesService.updateContato(request.body);
+    },
   );
 }

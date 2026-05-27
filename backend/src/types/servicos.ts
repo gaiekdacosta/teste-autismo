@@ -13,6 +13,7 @@ export type ServiceCatalogItem = {
   priceInCents: number;
   grantsTestAccess: boolean;
   grantsConsultationAccess: boolean;
+  active?: boolean;
 };
 
 export type CreateServicePurchaseInput = {
@@ -24,6 +25,7 @@ export type UpdateServiceInput = Partial<{
   name: string;
   description: string;
   priceInCents: number;
+  active: boolean;
 }>;
 
 export type ServicePackageRow = {
@@ -32,6 +34,7 @@ export type ServicePackageRow = {
   descricao: string;
   valor: number | string;
   posicao: number | null;
+  ativo: boolean | null;
 };
 
 export type InfinitePayWebhookInput = {

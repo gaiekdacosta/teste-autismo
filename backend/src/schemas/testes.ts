@@ -307,6 +307,22 @@ export const listAvaliadosSchema: FastifySchema = {
   },
 };
 
+// ============ CONTATO SCHEMAS COM CAMPO MENSAGEM ============
+
+const contatoResponseSchema = {
+  type: "object",
+  required: ["id", "whatsapp", "email", "created_at", "updated_at"],
+  properties: {
+    id: { type: "string", pattern: uuidPattern },
+    whatsapp: { type: "string" },
+    email: { type: "string" },
+    mensagem: { type: "string", nullable: true },
+    created_at: { type: "string" },
+    updated_at: { type: "string" },
+  },
+  additionalProperties: false,
+} as const;
+
 export const createContatoSchema: FastifySchema = {
   body: {
     type: "object",
@@ -314,11 +330,12 @@ export const createContatoSchema: FastifySchema = {
     properties: {
       whatsapp: { type: "string", minLength: 1 },
       email: { type: "string", minLength: 1 },
+      mensagem: { type: "string" },
     },
     additionalProperties: false,
   },
   response: {
-    201: { type: "object" },
+    201: contatoResponseSchema,
   },
 };
 
@@ -329,17 +346,18 @@ export const updateContatoSchema: FastifySchema = {
     properties: {
       whatsapp: { type: "string", minLength: 1 },
       email: { type: "string", minLength: 1 },
+      mensagem: { type: "string" },
     },
     additionalProperties: false,
   },
   response: {
-    200: { type: "object" },
+    200: contatoResponseSchema,
   },
 };
 
 export const getContatoSchema: FastifySchema = {
   response: {
-    200: { type: "object" },
+    200: contatoResponseSchema,
     404: messageResponseSchema,
   },
 };

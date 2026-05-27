@@ -31,7 +31,7 @@ const SOFT_SURFACE: RgbColor = { r: 247, g: 250, b: 247 }
 
 export function generateTestResultPDF(teste: Teste, userInfo: PdfUserInfo = {}): void {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-  const testeId = getTesteId(teste)
+  // const testeId = getTesteId(teste)
   const score = getTotalScore(teste)
   const interpretation = buildScoreInterpretation(score)
 
@@ -42,7 +42,8 @@ export function generateTestResultPDF(teste: Teste, userInfo: PdfUserInfo = {}):
   yPosition = addTestSection(doc, yPosition, teste)
   yPosition = addResultAndInterpretationSection(doc, yPosition, score, interpretation)
   // yPosition = addDatesSection(doc, yPosition, teste, generatedAt)
-  addValidationAndTechnicianSection(doc, yPosition, testeId)
+  //addValidationAndTechnicianSection(doc, yPosition, testeId)
+  addTechnicianSection(doc, yPosition)
   addFooter(doc)
 
   doc.save(buildFilename(teste))
@@ -160,12 +161,14 @@ function addDatesSection(doc: jsPDF, yPosition: number, teste: Teste, generatedA
 }
   */
 
-function addValidationAndTechnicianSection(doc: jsPDF, yPosition: number, testeId?: string): void {
-  const columnGap = 3
-  const columnWidth = (getContentWidth(doc) - columnGap) / 2
-  const rightX = PAGE_MARGIN + columnWidth + columnGap
-  const height = 60
-  const code = buildValidationCode(testeId)
+function addTechnicianSection(doc: jsPDF, yPosition: number): void {
+  const width = getContentWidth(doc)
+  const height = 58
+
+  addBoxAt(doc, PAGE_MARGIN, yPosition, width, height)
+
+  const centerX = PAGE_MARGIN + width / 2
+
   const credentials = [
     'CRM-SP 256758',
     'Pós-graduado e com experiência em atendimento em TDAH e TEA',
@@ -174,39 +177,47 @@ function addValidationAndTechnicianSection(doc: jsPDF, yPosition: number, testeI
     '+ 10.000 atendimentos realizados',
   ]
 
-  addBoxAt(doc, PAGE_MARGIN, yPosition, columnWidth, height)
-  addBoxAt(doc, rightX, yPosition, columnWidth, height)
-
-  addSectionTitle(doc, 'Validação do Documento', yPosition, PAGE_MARGIN, columnWidth, 'center')
-  addQrPlaceholder(doc, PAGE_MARGIN + 8, yPosition + 15, 22, code)
-
-  doc.setFont('courier', 'bold')
-  doc.setFontSize(10)
-  setText(doc, TEXT)
-  doc.text('Código:', PAGE_MARGIN + 40, yPosition + 24)
-  doc.text(code, PAGE_MARGIN + 40, yPosition + 32)
-
+  // Título
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   setText(doc, MUTED)
-  doc.text('Escaneie o QR Code ou acesse o site', PAGE_MARGIN + 40, yPosition + 39)
 
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-  setText(doc, MUTED)
-  doc.text('RESPONSÁVEL TÉCNICO PELO TESTE', rightX + columnWidth / 2, yPosition + 12, { align: 'center' })
+  doc.text(
+    'RESPONSÁVEL TÉCNICO PELO TESTE',
+    centerX,
+    yPosition + 11,
+    { align: 'center' },
+  )
 
+  // Nome
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(11)
+  doc.setFontSize(13)
   setText(doc, TEXT)
-  doc.text('Dr. Tiago Marinho', rightX + columnWidth / 2, yPosition + 22, { align: 'center' })
 
-  doc.setFontSize(6.4)
-  let credentialY = yPosition + 30
+  doc.text(
+    'Dr. Tiago Marinho Rodrigues',
+    centerX,
+    yPosition + 22,
+    { align: 'center' },
+  )
+
+  // Credenciais
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+
+  let credentialY = yPosition + 31
+
   credentials.forEach((credential) => {
-    const lines = doc.splitTextToSize(credential, columnWidth - 8)
-    doc.text(lines, rightX + columnWidth / 2, credentialY, { align: 'center' })
-    credentialY += lines.length * 4 + 1.5
+    const lines = doc.splitTextToSize(credential, width - 40)
+
+    doc.text(
+      lines,
+      centerX,
+      credentialY,
+      { align: 'center' },
+    )
+
+    credentialY += lines.length * 4.5 + 1.5
   })
 }
 
@@ -286,26 +297,26 @@ function addWrappedInfoRow(
   doc.text(lines, 78, yPosition)
 }
 
-function addQrPlaceholder(doc: jsPDF, x: number, y: number, size: number, seed: string): void {
-  setFill(doc, { r: 255, g: 255, b: 255 })
-  doc.rect(x, y, size, size, 'F')
-  setFill(doc, { r: 0, g: 0, b: 0 })
+// function addQrPlaceholder(doc: jsPDF, x: number, y: number, size: number, seed: string): void {
+//   setFill(doc, { r: 255, g: 255, b: 255 })
+//   doc.rect(x, y, size, size, 'F')
+//   setFill(doc, { r: 0, g: 0, b: 0 })
 
-  const cell = size / 9
-  const values = seed.split('').map((char) => char.charCodeAt(0))
+//   const cell = size / 9
+//   const values = seed.split('').map((char) => char.charCodeAt(0))
 
-  for (let row = 0; row < 9; row += 1) {
-    for (let col = 0; col < 9; col += 1) {
-      const value = values[(row + col) % values.length] ?? 1
-      const isMarker = row < 3 && col < 3 || row < 3 && col > 5 || row > 5 && col < 3
-      const shouldFill = isMarker || (value + row * 3 + col * 5) % 3 === 0
+//   for (let row = 0; row < 9; row += 1) {
+//     for (let col = 0; col < 9; col += 1) {
+//       const value = values[(row + col) % values.length] ?? 1
+//       const isMarker = row < 3 && col < 3 || row < 3 && col > 5 || row > 5 && col < 3
+//       const shouldFill = isMarker || (value + row * 3 + col * 5) % 3 === 0
 
-      if (shouldFill) {
-        doc.rect(x + col * cell, y + row * cell, cell * 0.85, cell * 0.85, 'F')
-      }
-    }
-  }
-}
+//       if (shouldFill) {
+//         doc.rect(x + col * cell, y + row * cell, cell * 0.85, cell * 0.85, 'F')
+//       }
+//     }
+//   }
+// }
 
 function buildScoreInterpretation(score: number): ScoreInterpretation {
   const maxScore = score > 10 ? 50 : 10
@@ -433,10 +444,10 @@ function buildFilename(teste: Teste): string {
   return `${slug || 'resultado'}-${testeId ? testeId.slice(0, 8) : Date.now()}.pdf`
 }
 
-function buildValidationCode(testeId?: string): string {
-  if (!testeId) return 'VALIDACAO'
-  return testeId.replace(/-/g, '').slice(0, 16).toUpperCase()
-}
+// function buildValidationCode(testeId?: string): string {
+//   if (!testeId) return 'VALIDACAO'
+//   return testeId.replace(/-/g, '').slice(0, 16).toUpperCase()
+// }
 
 function getTesteId(teste: Teste): string | undefined {
   return typeof teste.id === 'string' && teste.id.length > 0

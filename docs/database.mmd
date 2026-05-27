@@ -1,120 +1,121 @@
 classDiagram
 
-AUTH_USERS {
-    uuid id PK
-}
 
-ADMINISTRADORES {
+
+administradores {
     uuid id PK
-    uuid id_user FK "UNIQUE"
-    text email "UNIQUE"
-    boolean ativo
-    text nivel "admin | super_admin"
+    uuid id_user UK
+    text email UK
+    bool ativo
+    text nivel
     timestamptz created_at
     timestamptz updated_at
 }
 
-AGENDAMENTOS {
+agendamentos {
     uuid id PK
-    uuid id_user FK
-    uuid id_teste FK "nullable"
-    text status "pendente | confirmado | cancelado | concluido"
+    uuid id_user
+    uuid id_teste
+    text status
     timestamptz data_agendamento
     timestamptz created_at
     timestamptz updated_at
 }
 
-ALTERNATIVAS {
+alternativas {
     uuid id PK
-    uuid id_questao FK
-    integer posicao
+    uuid id_questao
+    int4 posicao
     text texto
-    integer valor
+    int4 valor
     timestamptz created_at
     timestamptz updated_at
 }
 
-AVALIADOS {
+avaliados {
     uuid id PK
-    uuid id_user FK
+    uuid id_user
     text nome
     timestamptz created_at
     timestamptz updated_at
 }
 
-COMPRAS_SERVICOS {
+compras_servicos {
     uuid id PK
-    uuid id_user FK
+    uuid id_user
     text customer_name
     text customer_email
     text service_id
     text service_name
-    integer service_price_cents
-    text status "pending | paid"
+    int4 service_price_cents
+    text status
     text checkout_url
-    text order_nsu "UNIQUE"
-    text invoice_slug
+    text order_nsu UK
     text transaction_nsu
-    text capture_method
     text receipt_url
     timestamptz notified_admin_at
     timestamptz created_at
     timestamptz updated_at
+    text invoice_slug
+    text capture_method
 }
 
-CONTATOS {
+contatos {
     uuid id PK
     text whatsapp
     text email
     timestamptz created_at
     timestamptz updated_at
+    text mensagem
 }
 
-QUESTIONARIO {
+questionario {
     uuid id PK
     text titulo
     text descricao
-    integer versao
-    boolean ativo
+    int4 versao
+    bool ativo
     timestamptz created_at
     timestamptz updated_at
 }
 
-QUESTOES {
+questoes {
     uuid id PK
-    uuid id_questionario FK
-    integer posicao
+    uuid id_questionario
+    int4 posicao
     text pergunta
     timestamptz created_at
     timestamptz updated_at
 }
 
-RESPOSTAS {
+respostas {
     uuid id PK
-    uuid id_teste FK
-    uuid id_questao FK
-    uuid id_alternativa FK
-    integer valor
+    uuid id_teste
+    uuid id_questao
+    uuid id_alternativa
+    int4 valor
     timestamptz created_at
 }
 
-SERVICOS_PACOTES {
+servicos_pacotes {
     uuid id PK
     text pacote
     text descricao
     numeric valor
-    integer posicao
+    int4 posicao
     timestamptz created_at
     timestamptz updated_at
+    text service_id
+    bool ativo
 }
 
-TESTES {
+testes {
     uuid id PK
-    uuid id_user FK
-    uuid id_avaliado FK
-    uuid id_questionario FK
-    text status "em_andamento | concluido"
-    integer pontuacao_total
+    uuid id_user
+    uuid id_avaliado
+    uuid id_questionario
+    text status
+    int4 pontuacao_total
     text classificacao
     timestamptz started_at
     timestamptz finished_at
@@ -122,21 +123,11 @@ TESTES {
     timestamptz updated_at
 }
 
-AUTH_USERS ||--o| ADMINISTRADORES : "id_user"
-AUTH_USERS ||--o{ AGENDAMENTOS : "id_user"
-AUTH_USERS ||--o{ AVALIADOS : "id_user"
-AUTH_USERS ||--o{ COMPRAS_SERVICOS : "id_user"
-AUTH_USERS ||--o{ TESTES : "id_user"
-
-QUESTIONARIO ||--o{ QUESTOES : "id_questionario"
-QUESTIONARIO ||--o{ TESTES : "id_questionario"
-
-QUESTOES ||--o{ ALTERNATIVAS : "id_questao"
-QUESTOES ||--o{ RESPOSTAS : "id_questao"
-
-ALTERNATIVAS ||--o{ RESPOSTAS : "id_alternativa"
-
-AVALIADOS ||--o{ TESTES : "id_avaliado"
-
-TESTES ||--o{ RESPOSTAS : "id_teste"
-TESTES ||--o{ AGENDAMENTOS : "id_teste"
+questionario ||--o{ questoes : possui
+questoes ||--o{ alternativas : possui
+questoes ||--o{ respostas : responde
+alternativas ||--o{ respostas : selecionada
+testes ||--o{ respostas : contem
+avaliados ||--o{ testes : realiza
+questionario ||--o{ testes : aplicado
+testes ||--o| agendamentos : agenda
