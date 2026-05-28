@@ -1,7 +1,7 @@
 import { jsonRequest, request } from './api'
 
 export type ServiceCatalogItem = {
-  id: 'testes-consultas' | 'apenas-testes' | 'apenas-consulta'
+  id: 'testes-consultas' | 'apenas-testes' | 'apenas-consulta' | 'testes-consulta-laudo'
   name: string
   description: string
   priceInCents: number

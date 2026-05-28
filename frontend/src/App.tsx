@@ -9,7 +9,8 @@ import {
 } from 'react-router-dom'
 
 import { LoginPage } from './pages/Login'
-import { RegisterPage } from './pages/Register'
+import { RegisterPage } from './pages/Register';
+import { ResetPasswordPage } from './pages/ResetPassword';
 import { Home } from './pages/Home'
 import { OurServices } from './pages/OurServices'
 
@@ -300,9 +301,15 @@ function App() {
           element={<LoginPage />}
         />
 
+
         <Route
           path="/register"
           element={<RegisterPage />}
+        />
+
+        <Route
+          path="/reset-password"
+          element={<ResetPasswordPage />}
         />
 
         <Route

@@ -12,6 +12,7 @@ const serviceEyebrows: Record<ServiceCatalogItem['id'], string> = {
     'testes-consultas': 'Pacote completo',
     'apenas-testes': 'Teste avulso',
     'apenas-consulta': 'Consulta avulsa',
+    'testes-consulta-laudo': 'Completo + Laudo',
 }
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {

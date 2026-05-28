@@ -5,7 +5,7 @@ import { FiEye, FiEyeOff } from 'react-icons/fi'
 import { FcGoogle } from 'react-icons/fc'
 
 import { Button } from '../components/ui/Button'
-import { getGoogleAuthorizationUrl, loginWithPassword } from '../services/auth'
+import { getGoogleAuthorizationUrl, loginWithPassword, forgotPassword } from '../services/auth'
 
 type FormState = {
     email: string
@@ -100,6 +100,23 @@ export function LoginPage() {
         }
     }
 
+    async function handleForgotPassword() {
+        if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) {
+            setErrorMessage('Informe um e-mail válido para recuperar a senha.');
+            return;
+        }
+        try {
+            setIsSubmitting(true);
+            setErrorMessage('');
+            await forgotPassword(form.email.trim(), `${window.location.origin}/reset-password`);
+            setSuccessMessage('E‑mail de recuperação enviado.');
+        } catch (error) {
+            setErrorMessage(error instanceof Error ? error.message : 'Falha ao recuperar senha.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
     return (
         <main className="flex min-h-screen items-center justify-center bg-(--background) px-6 py-10">
             <section className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-2xl">
@@ -170,7 +187,11 @@ export function LoginPage() {
                             </button>
                         </div>
                     </div>
-
+                    <div className='text-center'>
+                        <button type="button" onClick={handleForgotPassword} className="text-sm text-[var(--primary)] hover:underline">
+                            Esqueceu a senha?
+                        </button>
+                    </div>
                     {errorMessage && (
                         <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                             {errorMessage}

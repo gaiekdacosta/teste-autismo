@@ -45,7 +45,7 @@ export type LoginResponse = {
 
 const AUTH_STORAGE_KEY = 'auth.session'
 
-function mapAuthError(message: string) {
+export function mapAuthError(message: string) {
   const errors: Record<string, string> = {
     'Invalid login credentials': 'E-mail ou senha inválidos.',
     'Email not confirmed': 'Confirme seu e-mail antes de entrar.',
@@ -169,6 +169,16 @@ export async function verifyPhoneChange(credentials: VerifyPhoneChangeCredential
   persistSession(response)
 
   return response
+}
+
+export async function forgotPassword(email: string, redirectTo?: string) {
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  })
+
+  if (error) throw new Error(mapAuthError(error.message))
+
+  return data
 }
 
 export async function getGoogleAuthorizationUrl(redirectTo?: string) {

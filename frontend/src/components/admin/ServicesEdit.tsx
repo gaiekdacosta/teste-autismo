@@ -296,7 +296,7 @@ export function ServicesEdit({
                                         <FiSave size={14} />
                                         {savingServiceId === service.id
                                             ? 'Salvando...'
-                                            : 'Salvar serviço'}
+                                            : 'Salvar alteração'}
                                     </Button>
                                 </div>
                             </div>

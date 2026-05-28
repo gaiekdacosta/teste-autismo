@@ -28,6 +28,15 @@ const services: ServiceCatalogItem[] = [
     grantsTestAccess: false,
     grantsConsultationAccess: true,
   },
+  {
+    id: "testes-consulta-laudo",
+    name: "Testes + Consulta + Laudo",
+    description:
+      "Pacote completo com acesso aos testes de rastreio, resultado preliminar em PDF, consulta de orientação e emissão de laudo detalhado após a avaliação.",
+    priceInCents: 75000,
+    grantsTestAccess: true,
+    grantsConsultationAccess: true,
+  },
 ];
 
 export function getDefaultServices(): ServiceCatalogItem[] {
