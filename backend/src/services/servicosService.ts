@@ -324,6 +324,10 @@ export class ServicosService {
     }
 
     const adminEmails = await this.administradoresRepository.findActiveEmails();
+    const envAdminEmail = process.env.ADMIN_NOTIFICATION_EMAIL?.trim();
+    if (envAdminEmail && !adminEmails.map((e) => e.toLowerCase()).includes(envAdminEmail.toLowerCase())) {
+      adminEmails.push(envAdminEmail);
+    }
     const servicePrice = formatPriceInCents(purchase.service_price_cents);
     const baseInput = {
       customerName: purchase.customer_name,
@@ -375,6 +379,10 @@ export class ServicosService {
     }
 
     const adminEmails = await this.administradoresRepository.findActiveEmails();
+    const envAdminEmail = process.env.ADMIN_NOTIFICATION_EMAIL?.trim();
+    if (envAdminEmail && !adminEmails.map((e) => e.toLowerCase()).includes(envAdminEmail.toLowerCase())) {
+      adminEmails.push(envAdminEmail);
+    }
     const servicePrice = formatPriceInCents(purchase.service_price_cents);
     const baseInput = {
       customerName: purchase.customer_name,
