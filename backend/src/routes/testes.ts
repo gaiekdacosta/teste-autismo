@@ -190,29 +190,19 @@ export async function testesRoutes(fastify: FastifyInstance): Promise<void> {
 
   fastify.post<{ Body: CreateContatoInput }>(
     "/contato",
-    { schema: createContatoSchema, onRequest: [fastify.authenticate] },
-    async (request) => {
-      const userId = request.user?.id;
-
-      if (!userId) {
-        throw new Error("Unauthorized");
-      }
-
-      return testesService.createContato(request.body);
+    {
+      schema: createContatoSchema,
+      onRequest: [fastify.authenticate, fastify.requireAdmin],
     },
+    async (request) => testesService.createContato(request.body),
   );
 
   fastify.put<{ Body: UpdateContatoInput }>(
     "/contato",
-    { schema: updateContatoSchema, onRequest: [fastify.authenticate] },
-    async (request) => {
-      const userId = request.user?.id;
-
-      if (!userId) {
-        throw new Error("Unauthorized");
-      }
-
-      return testesService.updateContato(request.body);
+    {
+      schema: updateContatoSchema,
+      onRequest: [fastify.authenticate, fastify.requireAdmin],
     },
+    async (request) => testesService.updateContato(request.body),
   );
 }

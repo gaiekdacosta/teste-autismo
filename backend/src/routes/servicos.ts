@@ -135,7 +135,12 @@ export async function servicosRoutes(fastify: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const expectedToken = getEnv("INFINITEPAY_WEBHOOK_TOKEN");
 
-      if (expectedToken && request.query.token !== expectedToken) {
+      if (!expectedToken) {
+        reply.status(503);
+        return { message: "Webhook nao configurado." };
+      }
+
+      if (request.query.token !== expectedToken) {
         reply.status(401);
         return { message: "Webhook nao autorizado." };
       }

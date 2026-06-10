@@ -225,9 +225,10 @@ export const updateTesteSchema: FastifySchema = {
     type: "object",
     minProperties: 1,
     properties: {
+      // pontuacao_total e classificacao sao calculados exclusivamente pelo
+      // servidor (ver TestesService.buildResult) e nao podem ser definidos
+      // pelo cliente, para evitar adulteracao do resultado do teste.
       status: { type: "string" },
-      pontuacao_total: { type: "integer" },
-      classificacao: { type: "string" },
       started_at: { type: "string" },
       finished_at: { type: "string" },
     },

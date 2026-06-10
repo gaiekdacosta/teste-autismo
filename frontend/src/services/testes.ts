@@ -112,8 +112,6 @@ export function completeExistingTeste(id: string) {
 
 export function updateTeste(id: string, data: Partial<{
   status: string
-  pontuacao_total: number
-  classificacao: string
   started_at: string
   finished_at: string
 }>) {

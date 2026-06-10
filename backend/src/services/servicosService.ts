@@ -287,17 +287,43 @@ export class ServicosService {
       };
     }
 
+    // Confirma o pagamento direto na InfinitePay antes de liberar o acesso.
+    // Nunca confiar apenas no corpo do webhook (pode ser forjado).
+    const payment = await this.infinitePayService.checkPayment({
+      orderNsu,
+      transactionNsu: input.transaction_nsu,
+      slug: input.invoice_slug ?? input.slug,
+    });
+
+    if (!payment.paid) {
+      const pendingPurchase = await this.servicosRepository.updatePurchase(
+        purchase.id,
+        {
+          transaction_nsu: input.transaction_nsu ?? payment.transactionNsu ?? null,
+          capture_method: input.capture_method ?? null,
+          receipt_url: input.receipt_url ?? payment.receiptUrl ?? null,
+        },
+      );
+
+      return {
+        success: true,
+        message: "Pagamento ainda nao confirmado.",
+        purchaseId: pendingPurchase.id,
+        status: pendingPurchase.status,
+      };
+    }
+
     const updatedPurchase = await this.servicosRepository.updatePurchase(
       purchase.id,
       {
         status: SERVICE_PURCHASE_STATUS.paid,
-        transaction_nsu: input.transaction_nsu ?? null,
+        transaction_nsu: input.transaction_nsu ?? payment.transactionNsu ?? null,
         capture_method: input.capture_method ?? null,
-        receipt_url: input.receipt_url ?? null,
+        receipt_url: input.receipt_url ?? payment.receiptUrl ?? null,
       },
     );
 
-    void this.notifyPaidPurchase(updatedPurchase, "webhook")
+    void this.notifyPaidPurchase(updatedPurchase, payment.paymentStatus)
       .then((notified) => {
         if (!notified) return undefined;
 
@@ -328,6 +354,7 @@ export class ServicosService {
     if (envAdminEmail && !adminEmails.map((e) => e.toLowerCase()).includes(envAdminEmail.toLowerCase())) {
       adminEmails.push(envAdminEmail);
     }
+    const customerPhone = await this.getCustomerPhone(purchase.id_user);
     const servicePrice = formatPriceInCents(purchase.service_price_cents);
     const baseInput = {
       customerName: purchase.customer_name,
@@ -349,6 +376,7 @@ export class ServicosService {
       ...adminEmails.map((email) =>
         this.emailService.notifyServicePurchase({
           ...baseInput,
+          customerPhone,
           recipientEmail: email,
           recipientRole: "admin",
         }),
@@ -383,10 +411,12 @@ export class ServicosService {
     if (envAdminEmail && !adminEmails.map((e) => e.toLowerCase()).includes(envAdminEmail.toLowerCase())) {
       adminEmails.push(envAdminEmail);
     }
+    const customerPhone = await this.getCustomerPhone(purchase.id_user);
     const servicePrice = formatPriceInCents(purchase.service_price_cents);
     const baseInput = {
       customerName: purchase.customer_name,
       customerEmail: purchase.customer_email,
+      customerPhone,
       serviceName: purchase.service_name,
       servicePrice,
       paymentStatus: 'paid', // we know it's a successful purchase
@@ -403,6 +433,23 @@ export class ServicosService {
       }),
     );
     await Promise.allSettled(notifications);
+  }
+
+  private async getCustomerPhone(userId: string): Promise<string | null> {
+    try {
+      const authUser = await this.administradoresRepository.findAuthUserById(userId);
+      if (!authUser) return null;
+
+      const metadataPhone = authUser.user_metadata?.phone;
+      return (
+        authUser.phone ??
+        (typeof metadataPhone === "string" && metadataPhone.trim().length > 0
+          ? metadataPhone
+          : null)
+      );
+    } catch {
+      return null;
+    }
   }
 }
 

@@ -31,6 +31,13 @@ const frontendUrls = Array.from(
   new Set([...configuredFrontendUrls, ...devFrontendUrls]),
 );
 
+if (frontendUrls.length === 0) {
+  console.warn(
+    "[CORS] Nenhuma origem permitida configurada. Defina FRONTEND_URL " +
+      "(separada por virgulas) ou o frontend nao conseguira acessar a API.",
+  );
+}
+
 export async function createFastifyApp() {
   const fastify = Fastify({
     logger: {

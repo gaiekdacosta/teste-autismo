@@ -53,13 +53,21 @@ export type SaveTesteRespostasInput = {
   respostas: RespostaInput[];
 };
 
+// Campos que o cliente pode atualizar via rota. pontuacao_total e
+// classificacao ficam de fora de proposito: sao calculados no servidor.
 export type UpdateTesteInput = Partial<{
   status: TesteStatus;
-  pontuacao_total: number;
-  classificacao: string;
   started_at: string;
   finished_at: string;
 }>;
+
+// Tipo interno usado pelo repositorio. Inclui os campos de resultado, que
+// so podem ser definidos por fluxos do servidor (ex.: conclusao do teste).
+export type UpdateTesteData = UpdateTesteInput &
+  Partial<{
+    pontuacao_total: number;
+    classificacao: string;
+  }>;
 
 export type Avaliado = {
   id: string;

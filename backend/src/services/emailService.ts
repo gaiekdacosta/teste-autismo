@@ -11,6 +11,7 @@ type NotifyNewUserInput = {
 type NotifyServicePurchaseInput = {
   customerName?: string | null;
   customerEmail?: string | null;
+  customerPhone?: string | null;
   recipientEmail?: string | null;
   recipientRole: "customer" | "admin";
   serviceName: string;
@@ -28,6 +29,14 @@ function getEnv(name: string): string | undefined {
 
 function getOptionalText(value?: string | null): string {
   return value && value.trim().length > 0 ? value : "Nao informado";
+}
+
+function getWhatsappLink(phone?: string | null): string | null {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 10) return null;
+  const withCountryCode = digits.length <= 11 ? `55${digits}` : digits;
+  return `https://wa.me/${withCountryCode}`;
 }
 
 function getEmailWrapper(title: string, contentHtml: string): string {
@@ -126,6 +135,8 @@ export class EmailService {
     const title = input.recipientRole === "customer" ? "Confirmação de Compra" : "Nova Compra Realizada";
     const customerName = getOptionalText(input.customerName);
     const customerEmail = getOptionalText(input.customerEmail);
+    const customerPhone = getOptionalText(input.customerPhone);
+    const whatsappLink = getWhatsappLink(input.customerPhone);
     const serviceName = input.serviceName;
     const servicePrice = input.servicePrice;
     const paymentStatus = input.paymentStatus;
@@ -157,6 +168,17 @@ export class EmailService {
       `;
     }
 
+    let whatsappButton = "";
+    if (input.recipientRole === "admin" && whatsappLink) {
+      whatsappButton = `
+        <div style="text-align: center; margin-top: 24px;">
+          <a href="${whatsappLink}" target="_blank" style="display: inline-block; background-color: #25D366; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 14px; font-family: sans-serif;">
+            Conversar no WhatsApp
+          </a>
+        </div>
+      `;
+    }
+
     const contentHtml = `
       ${welcomeMessage}
       
@@ -174,6 +196,11 @@ export class EmailService {
           <td style="padding: 6px 0; color: #9ca3af; font-size: 14px; font-family: sans-serif;"><strong>E-mail:</strong></td>
           <td style="padding: 6px 0; color: #f5f5f5; font-size: 14px; font-family: sans-serif; text-align: right;">${customerEmail}</td>
         </tr>
+        ${input.recipientRole === "admin" ? `
+        <tr>
+          <td style="padding: 6px 0; color: #9ca3af; font-size: 14px; font-family: sans-serif;"><strong>Telefone:</strong></td>
+          <td style="padding: 6px 0; color: #f5f5f5; font-size: 14px; font-family: sans-serif; text-align: right;">${customerPhone}</td>
+        </tr>` : ''}
         <tr>
           <td style="padding: 6px 0; color: #9ca3af; font-size: 14px; font-family: sans-serif;"><strong>Serviço:</strong></td>
           <td style="padding: 6px 0; color: #f5f5f5; font-size: 14px; font-family: sans-serif; text-align: right;">${serviceName}</td>
@@ -198,6 +225,7 @@ export class EmailService {
         </tr>` : ''}
       </table>
       ${receiptButton}
+      ${whatsappButton}
     `;
 
     const html = getEmailWrapper(title, contentHtml);

@@ -48,7 +48,7 @@ export type InfinitePayWebhookInput = {
 
 export type InfinitePayWebhookResponse = {
   success: true;
-  message: null;
+  message: string | null;
   purchaseId: string;
   status: ServicePurchaseStatus;
 };

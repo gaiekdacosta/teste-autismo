@@ -92,6 +92,16 @@ export class AdministradoresRepository {
     }
   }
 
+  async findAuthUserById(userId: string): Promise<User | null> {
+    const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+
+    if (error) {
+      throwSupabaseError("buscar usuário do Auth por id", error);
+    }
+
+    return data.user ?? null;
+  }
+
   async create(input: CreateAdministradorRecord): Promise<Administrador> {
     const { data, error } = await supabaseAdmin
       .from("administradores")

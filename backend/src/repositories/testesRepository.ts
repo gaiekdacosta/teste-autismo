@@ -18,7 +18,7 @@ import type {
   TesteInsertRow,
   UpdateAvaliadoInput,
   UpdateContatoInput,
-  UpdateTesteInput,
+  UpdateTesteData,
 } from "../types/testes";
 
 const TESTE_COMPLETO_SELECT = `
@@ -311,7 +311,7 @@ export class TestesRepository {
     }
   }
 
-  async update(id: string, input: UpdateTesteInput): Promise<void> {
+  async update(id: string, input: UpdateTesteData): Promise<void> {
     const updateData: Partial<Omit<Teste, "id" | "id_user" | "id_avaliado" | "id_questionario" | "created_at">> = {};
 
     if (input.status !== undefined) {
