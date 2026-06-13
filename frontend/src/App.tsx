@@ -293,23 +293,23 @@ function App() {
       <Routes>
         <Route
           path="/"
-          element={<LoginPage />}
+          element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />}
         />
 
         <Route
           path="/login"
-          element={<LoginPage />}
+          element={isAuthenticated ? <Navigate to="/home" replace /> : <LoginPage />}
         />
 
 
         <Route
           path="/register"
-          element={<RegisterPage />}
+          element={isAuthenticated ? <Navigate to="/home" replace /> : <RegisterPage />}
         />
 
         <Route
           path="/reset-password"
-          element={<ResetPasswordPage />}
+          element={isAuthenticated ? <Navigate to="/home" replace /> : <ResetPasswordPage />}
         />
 
         <Route
