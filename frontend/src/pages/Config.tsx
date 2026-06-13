@@ -12,6 +12,8 @@ type FormState = {
     name: string;
     email: string;
     phone: string;
+    birthDate: string;
+    gender: string;
     currentPassword: string;
     newPassword: string;
     confirmNewPassword: string;
@@ -21,6 +23,8 @@ const initialFormState: FormState = {
     name: '',
     email: '',
     phone: '',
+    birthDate: '',
+    gender: '',
     currentPassword: '',
     newPassword: '',
     confirmNewPassword: '',
@@ -61,6 +65,8 @@ export function ConfigPage() {
                         name: meta.name || '',
                         email: user.email || '',
                         phone: meta.phone || '',
+                        birthDate: meta.birthDate || '',
+                        gender: meta.gender || '',
                     }));
                 } else {
                     navigate('/login');
@@ -80,7 +86,9 @@ export function ConfigPage() {
             form.name.trim().length >= 3 &&
             /\S+@\S+\.\S+/.test(form.email) &&
             phoneNumbers.length >= 10 &&
-            phoneNumbers.length <= 13
+            phoneNumbers.length <= 13 &&
+            form.birthDate !== '' &&
+            form.gender !== ''
         );
     }, [form]);
 
@@ -112,6 +120,16 @@ export function ConfigPage() {
             return;
         }
 
+        if (form.birthDate === '') {
+            setErrorMessage('Informe a data de nascimento.');
+            return;
+        }
+
+        if (form.gender === '') {
+            setErrorMessage('Informe o gênero.');
+            return;
+        }
+
         try {
             setIsSubmitting(true);
             setErrorMessage('');
@@ -123,12 +141,14 @@ export function ConfigPage() {
             const { data: { user } } = await supabase.auth.getUser();
             const currentMeta = user?.user_metadata ?? {};
 
-            // 2. Atualizar apenas name e phone dentro de user_metadata
+            // 2. Atualizar apenas name, phone, birthDate e gender dentro de user_metadata
             const { error } = await supabase.auth.updateUser({
                 data: {
                     ...currentMeta,
                     name: form.name.trim(),
                     phone: normalizedPhone,
+                    birthDate: form.birthDate,
+                    gender: form.gender,
                 },
             });
 
@@ -143,6 +163,8 @@ export function ConfigPage() {
                 name: freshMeta.name || form.name.trim(),
                 email: freshUser?.email || prev.email,
                 phone: freshMeta.phone || normalizedPhone,
+                birthDate: freshMeta.birthDate || form.birthDate,
+                gender: freshMeta.gender || form.gender,
             }));
 
             setSuccessMessage('Dados atualizados com sucesso!');
@@ -292,6 +314,40 @@ export function ConfigPage() {
                                         }
                                         className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--primary)]"
                                     />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-[var(--foreground)]">
+                                        Data de nascimento
+                                    </label>
+
+                                    <input
+                                        type="date"
+                                        value={form.birthDate}
+                                        onChange={(event) =>
+                                            setForm((old) => ({ ...old, birthDate: event.target.value }))
+                                        }
+                                        className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--primary)]"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-[var(--foreground)]">
+                                        Gênero
+                                    </label>
+
+                                    <select
+                                        value={form.gender}
+                                        onChange={(event) =>
+                                            setForm((old) => ({ ...old, gender: event.target.value }))
+                                        }
+                                        className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-3 text-[var(--foreground)] outline-none transition focus:border-[var(--primary)]"
+                                    >
+                                        <option value="">Selecione</option>
+                                        <option value="masculino">Masculino</option>
+                                        <option value="feminino">Feminino</option>
+                                        <option value="outro">Outro</option>
+                                    </select>
                                 </div>
 
                                 <Button
