@@ -55,6 +55,43 @@ export function RegisterPage() {
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
+    const [touched, setTouched] = useState<Record<keyof FormState, boolean>>({
+        name: false,
+        email: false,
+        phone: false,
+        birthDate: false,
+        gender: false,
+        password: false,
+        confirmPassword: false,
+    })
+
+    const handleBlur = (field: keyof FormState) => {
+        setTouched((prev) => ({ ...prev, [field]: true }))
+    }
+
+    const fieldErrors = useMemo(() => {
+        const phoneNumbers = form.phone.replace(/\D/g, '')
+        return {
+            name: form.name.trim().length < 3 ? 'Informe um nome com pelo menos 3 caracteres.' : '',
+            email: !/\S+@\S+\.\S+/.test(form.email) ? 'Informe um e-mail válido.' : '',
+            phone: phoneNumbers.length > 0 && (phoneNumbers.length < 10 || phoneNumbers.length > 13) ? 'Informe um número de celular válido.' : '',
+            birthDate: form.birthDate === '' ? 'Informe a data de nascimento.' : '',
+            gender: form.gender === '' ? 'Informe o gênero.' : '',
+            password: form.password.length > 0 && form.password.trim().length < 6 ? 'A senha deve ter pelo menos 6 caracteres.' : '',
+            confirmPassword: form.confirmPassword.length > 0 && form.password !== form.confirmPassword ? 'As senhas não coincidem.' : '',
+        }
+    }, [form])
+
+    const getFieldClassName = (fieldName: keyof FormState, isPassword = false) => {
+        const hasError = touched[fieldName] && fieldErrors[fieldName] !== ''
+        const baseClass = isPassword ? passwordFieldClassName : fieldClassName
+        
+        if (hasError) {
+            return baseClass.replace('border-[var(--border)]', 'border-red-500').replace('focus:border-[var(--primary)]', 'focus:border-red-500')
+        }
+        return baseClass
+    }
+
     const isFormValid = useMemo(() => {
         const phoneNumbers = form.phone.replace(/\D/g, '')
 
@@ -216,8 +253,12 @@ export function RegisterPage() {
                                             name: e.target.value,
                                         }))
                                     }
-                                    className={fieldClassName}
+                                    onBlur={() => handleBlur('name')}
+                                    className={getFieldClassName('name')}
                                 />
+                                {touched.name && fieldErrors.name && (
+                                    <p className="mt-1 text-xs text-red-500">{fieldErrors.name}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -235,8 +276,12 @@ export function RegisterPage() {
                                             email: e.target.value,
                                         }))
                                     }
-                                    className={fieldClassName}
+                                    onBlur={() => handleBlur('email')}
+                                    className={getFieldClassName('email')}
                                 />
+                                {touched.email && fieldErrors.email && (
+                                    <p className="mt-1 text-xs text-red-500">{fieldErrors.email}</p>
+                                )}
                             </div>
                         </div>
 
@@ -256,8 +301,12 @@ export function RegisterPage() {
                                             phone: e.target.value,
                                         }))
                                     }
-                                    className={fieldClassName}
+                                    onBlur={() => handleBlur('phone')}
+                                    className={getFieldClassName('phone')}
                                 />
+                                {touched.phone && fieldErrors.phone && (
+                                    <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -274,8 +323,12 @@ export function RegisterPage() {
                                             birthDate: e.target.value,
                                         }))
                                     }
-                                    className={fieldClassName}
+                                    onBlur={() => handleBlur('birthDate')}
+                                    className={getFieldClassName('birthDate')}
                                 />
+                                {touched.birthDate && fieldErrors.birthDate && (
+                                    <p className="mt-1 text-xs text-red-500">{fieldErrors.birthDate}</p>
+                                )}
                             </div>
                         </div>
 
@@ -292,13 +345,17 @@ export function RegisterPage() {
                                         gender: e.target.value,
                                     }))
                                 }
-                                className={fieldClassName}
+                                onBlur={() => handleBlur('gender')}
+                                className={getFieldClassName('gender')}
                             >
                                 <option value="">Selecione</option>
                                 <option value="masculino">Masculino</option>
                                 <option value="feminino">Feminino</option>
                                 <option value="outro">Outro</option>
                             </select>
+                            {touched.gender && fieldErrors.gender && (
+                                <p className="mt-1 text-xs text-red-500">{fieldErrors.gender}</p>
+                            )}
                         </div>
 
                         <div className="grid gap-5 md:grid-cols-2">
@@ -318,7 +375,8 @@ export function RegisterPage() {
                                                 password: e.target.value,
                                             }))
                                         }
-                                        className={passwordFieldClassName}
+                                        onBlur={() => handleBlur('password')}
+                                        className={getFieldClassName('password', true)}
                                     />
 
                                     <button
@@ -330,6 +388,9 @@ export function RegisterPage() {
                                         {showPassword ? <FiEye size={18} /> : <FiEyeOff size={18} />}
                                     </button>
                                 </div>
+                                {touched.password && fieldErrors.password && (
+                                    <p className="mt-1 text-xs text-red-500">{fieldErrors.password}</p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -348,7 +409,8 @@ export function RegisterPage() {
                                                 confirmPassword: e.target.value,
                                             }))
                                         }
-                                        className={passwordFieldClassName}
+                                        onBlur={() => handleBlur('confirmPassword')}
+                                        className={getFieldClassName('confirmPassword', true)}
                                     />
 
                                     <button
@@ -364,6 +426,9 @@ export function RegisterPage() {
                                         {showConfirmPassword ? <FiEye size={18} /> : <FiEyeOff size={18} />}
                                     </button>
                                 </div>
+                                {touched.confirmPassword && fieldErrors.confirmPassword && (
+                                    <p className="mt-1 text-xs text-red-500">{fieldErrors.confirmPassword}</p>
+                                )}
                             </div>
                         </div>
 

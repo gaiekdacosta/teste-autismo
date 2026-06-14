@@ -47,20 +47,21 @@ const AUTH_STORAGE_KEY = 'auth.session'
 
 export function mapAuthError(message: string) {
   const errors: Record<string, string> = {
-    'Invalid login credentials': 'E-mail ou senha inválidos.',
-    'Email not confirmed': 'Confirme seu e-mail antes de entrar.',
-    'Phone not confirmed': 'Confirme seu telefone antes de continuar.',
-    'User already registered': 'Este e-mail já está cadastrado.',
-    'A user with this phone number has already been registered':
+    'invalid login credentials': 'E-mail ou senha inválidos.',
+    'email not confirmed': 'Confirme seu e-mail antes de entrar.',
+    'phone not confirmed': 'Confirme seu telefone antes de continuar.',
+    'user already registered': 'Este e-mail já está cadastrado.',
+    'a user with this phone number has already been registered':
       'Este telefone já está cadastrado.',
-    'Password should be at least 6 characters':
+    'password should be at least 6 characters':
       'A senha deve ter pelo menos 6 caracteres.',
-    'Signup is disabled': 'Cadastro desativado no momento.',
-    'Email rate limit exceeded': 'Muitas tentativas. Tente novamente mais tarde.',
-    'Phone rate limit exceeded': 'Muitas tentativas com este telefone. Tente novamente mais tarde.',
+    'signup is disabled': 'Cadastro desativado no momento.',
+    'email rate limit exceeded': 'Muitas tentativas. Tente novamente mais tarde.',
+    'phone rate limit exceeded': 'Muitas tentativas com este telefone. Tente novamente mais tarde.',
   }
 
-  return errors[message] || 'Erro de autenticação.'
+  const normalizedMessage = message.trim().toLowerCase();
+  return errors[normalizedMessage] || 'Erro de autenticação.'
 }
 
 function getMetadataValue(user: User, key: string) {
