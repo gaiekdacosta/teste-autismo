@@ -14,8 +14,6 @@ type FormState = {
     name: string
     email: string
     phone: string
-    birthDate: string
-    gender: string
     password: string
     confirmPassword: string
 }
@@ -24,8 +22,6 @@ const initialFormState: FormState = {
     name: '',
     email: '',
     phone: '',
-    birthDate: '',
-    gender: '',
     password: '',
     confirmPassword: '',
 }
@@ -59,8 +55,6 @@ export function RegisterPage() {
         name: false,
         email: false,
         phone: false,
-        birthDate: false,
-        gender: false,
         password: false,
         confirmPassword: false,
     })
@@ -75,8 +69,6 @@ export function RegisterPage() {
             name: form.name.trim().length < 3 ? 'Informe um nome com pelo menos 3 caracteres.' : '',
             email: !/\S+@\S+\.\S+/.test(form.email) ? 'Informe um e-mail válido.' : '',
             phone: phoneNumbers.length > 0 && (phoneNumbers.length < 10 || phoneNumbers.length > 13) ? 'Informe um número de celular válido.' : '',
-            birthDate: form.birthDate === '' ? 'Informe a data de nascimento.' : '',
-            gender: form.gender === '' ? 'Informe o gênero.' : '',
             password: form.password.length > 0 && form.password.trim().length < 6 ? 'A senha deve ter pelo menos 6 caracteres.' : '',
             confirmPassword: form.confirmPassword.length > 0 && form.password !== form.confirmPassword ? 'As senhas não coincidem.' : '',
         }
@@ -100,8 +92,6 @@ export function RegisterPage() {
             /\S+@\S+\.\S+/.test(form.email) &&
             phoneNumbers.length >= 10 &&
             phoneNumbers.length <= 13 &&
-            form.birthDate !== '' &&
-            form.gender !== '' &&
             form.password.trim().length >= 6 &&
             form.password === form.confirmPassword
         )
@@ -127,16 +117,6 @@ export function RegisterPage() {
             return
         }
 
-        if (form.birthDate === '') {
-            setErrorMessage('Informe a data de nascimento.')
-            return
-        }
-
-        if (form.gender === '') {
-            setErrorMessage('Informe o gênero.')
-            return
-        }
-
         if (form.password.trim().length < 6) {
             setErrorMessage('A senha deve ter pelo menos 6 caracteres.')
             return
@@ -155,8 +135,6 @@ export function RegisterPage() {
                 name: form.name.trim(),
                 email: form.email.trim(),
                 phone: normalizePhone(form.phone),
-                birthDate: form.birthDate,
-                gender: form.gender,
                 password: form.password,
             })
 
@@ -285,76 +263,26 @@ export function RegisterPage() {
                             </div>
                         </div>
 
-                        <div className="grid gap-5 md:grid-cols-2">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-[var(--foreground)]">
-                                    Celular
-                                </label>
-
-                                <input
-                                    type="tel"
-                                    value={form.phone}
-                                    placeholder="(85) 99999-9999"
-                                    onChange={(e) =>
-                                        setForm((old) => ({
-                                            ...old,
-                                            phone: e.target.value,
-                                        }))
-                                    }
-                                    onBlur={() => handleBlur('phone')}
-                                    className={getFieldClassName('phone')}
-                                />
-                                {touched.phone && fieldErrors.phone && (
-                                    <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-[var(--foreground)]">
-                                    Data de nascimento
-                                </label>
-
-                                <input
-                                    type="date"
-                                    value={form.birthDate}
-                                    onChange={(e) =>
-                                        setForm((old) => ({
-                                            ...old,
-                                            birthDate: e.target.value,
-                                        }))
-                                    }
-                                    onBlur={() => handleBlur('birthDate')}
-                                    className={getFieldClassName('birthDate')}
-                                />
-                                {touched.birthDate && fieldErrors.birthDate && (
-                                    <p className="mt-1 text-xs text-red-500">{fieldErrors.birthDate}</p>
-                                )}
-                            </div>
-                        </div>
-
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-[var(--foreground)]">
-                                Gênero
+                                Celular
                             </label>
 
-                            <select
-                                value={form.gender}
+                            <input
+                                type="tel"
+                                value={form.phone}
+                                placeholder="(85) 99999-9999"
                                 onChange={(e) =>
                                     setForm((old) => ({
                                         ...old,
-                                        gender: e.target.value,
+                                        phone: e.target.value,
                                     }))
                                 }
-                                onBlur={() => handleBlur('gender')}
-                                className={getFieldClassName('gender')}
-                            >
-                                <option value="">Selecione</option>
-                                <option value="masculino">Masculino</option>
-                                <option value="feminino">Feminino</option>
-                                <option value="outro">Outro</option>
-                            </select>
-                            {touched.gender && fieldErrors.gender && (
-                                <p className="mt-1 text-xs text-red-500">{fieldErrors.gender}</p>
+                                onBlur={() => handleBlur('phone')}
+                                className={getFieldClassName('phone')}
+                            />
+                            {touched.phone && fieldErrors.phone && (
+                                <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>
                             )}
                         </div>
 

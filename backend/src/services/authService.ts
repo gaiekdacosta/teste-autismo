@@ -15,16 +15,12 @@ export type AuthUser = {
   name?: string;
   phone?: string;
   avatarUrl?: string;
-  birthDate?: string;
-  gender?: string;
 };
 
 export type RegisterCredentials = {
   name: string;
   email: string;
   phone: string;
-  birthDate: string;
-  gender: string;
   password: string;
 };
 
@@ -69,8 +65,6 @@ function mapAuthUser(user?: User | null): AuthUser | undefined {
     name: getMetadataValue(user, "name") ?? getMetadataValue(user, "full_name"),
     phone: user.phone ?? getMetadataValue(user, "phone"),
     avatarUrl: getMetadataValue(user, "avatar_url"),
-    birthDate: getMetadataValue(user, "birthDate"),
-    gender: getMetadataValue(user, "gender"),
   };
 }
 
@@ -98,8 +92,6 @@ export class AuthService {
         data: {
           name: input.name,
           phone: input.phone,
-          birthDate: input.birthDate,
-          gender: input.gender,
         },
       },
     });

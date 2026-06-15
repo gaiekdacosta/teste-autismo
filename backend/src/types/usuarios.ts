@@ -13,8 +13,6 @@ export type UsuarioSistema = {
   email: string | null;
   name: string | null;
   phone: string | null;
-  birthDate: string | null;
-  gender: string | null;
   avatarUrl: string | null;
   created_at: string;
   updated_at: string | null;

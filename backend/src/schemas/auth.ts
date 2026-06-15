@@ -9,8 +9,6 @@ const authUserResponseSchema = {
     name: { type: "string" },
     phone: { type: "string" },
     avatarUrl: { type: "string" },
-    birthDate: { type: "string" },
-    gender: { type: "string" },
   },
   additionalProperties: false,
 } as const;
@@ -45,13 +43,11 @@ const messageResponseSchema = {
 export const registerSchema: FastifySchema = {
   body: {
     type: "object",
-    required: ["name", "email", "phone", "birthDate", "gender", "password"],
+    required: ["name", "email", "phone", "password"],
     properties: {
       name: { type: "string", minLength: 3 },
       email: { type: "string", format: "email" },
       phone: { type: "string", minLength: 10 },
-      birthDate: { type: "string", minLength: 1 },
-      gender: { type: "string", minLength: 1 },
       password: { type: "string", minLength: 6 },
     },
     additionalProperties: false,

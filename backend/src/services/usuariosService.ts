@@ -37,12 +37,6 @@ export class UsuariosService {
         this.getMetadataText(user, "name") ??
         this.getMetadataText(user, "full_name"),
       phone: this.firstText(user.phone, this.getMetadataText(user, "phone")),
-      birthDate:
-        this.getMetadataText(user, "birthDate") ??
-        this.getMetadataText(user, "data_nascimento"),
-      gender:
-        this.getMetadataText(user, "gender") ??
-        this.getMetadataText(user, "genero"),
       avatarUrl: this.getMetadataText(user, "avatar_url"),
       created_at: user.created_at,
       updated_at: user.updated_at ?? null,

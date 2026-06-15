@@ -60,8 +60,6 @@ export function MyTestsPage() {
         name: getMetadataText(metadata.name) || getMetadataText(metadata.full_name),
         email: data.user?.email,
         phone: data.user?.phone || getMetadataText(metadata.phone),
-        birthDate: getMetadataText(metadata.birthDate),
-        gender: getMetadataText(metadata.gender),
       })
     } catch (err) {
       console.error('Erro ao gerar PDF:', err)

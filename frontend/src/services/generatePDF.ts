@@ -5,8 +5,6 @@ export type PdfUserInfo = {
   name?: string
   email?: string
   phone?: string
-  birthDate?: string
-  gender?: string
 }
 
 type RgbColor = {
@@ -70,12 +68,10 @@ function addPatientSection(
   teste: Teste,
   userInfo: PdfUserInfo,
 ): number {
-  return addBox(doc, yPosition, 44, () => {
+  return addBox(doc, yPosition, 31, () => {
     addSectionTitle(doc, 'Informações do Paciente', yPosition)
     addInfoRow(doc, 'Nome:', getPatientName(teste, userInfo), yPosition + 18)
     addInfoRow(doc, 'E-mail:', userInfo.email || 'Não informado', yPosition + 27)
-    addInfoRow(doc, 'Nascimento:', formatDate(getPatientBirthDate(teste, userInfo)), yPosition + 35)
-    addInfoRow(doc, 'Gênero:', formatGender(getPatientGender(teste, userInfo)), yPosition + 42)
   })
 }
 
@@ -391,35 +387,6 @@ function getPatientName(_teste: Teste, userInfo: PdfUserInfo): string {
   return userInfo.name || 'Não informado'
 }
 
-function getPatientBirthDate(_teste: Teste, userInfo: PdfUserInfo): string | null | undefined {
-  return userInfo.birthDate
-}
-
-function getPatientGender(_teste: Teste, userInfo: PdfUserInfo): string | null | undefined {
-  return userInfo.gender
-}
-
-function formatGender(gender?: string | null): string {
-  if (!gender) return 'Não informado'
-
-  const normalized = normalizeText(gender)
-  const genderMap: Record<string, string> = {
-    feminino: 'Feminino',
-    female: 'Feminino',
-    masculino: 'Masculino',
-    male: 'Masculino',
-    outro: 'Outro',
-    other: 'Outro',
-  }
-
-  return genderMap[normalized] || gender
-}
-
-function formatDate(date?: string | null): string {
-  if (!date) return 'Não informado'
-  return new Date(date).toLocaleDateString('pt-BR')
-}
-
 function formatDateTime(date?: string | Date | null): string {
   if (!date) return 'Não informado'
   return new Date(date).toLocaleString('pt-BR', {
@@ -457,13 +424,6 @@ function getTesteId(teste: Teste): string | undefined {
 
 function getContentWidth(doc: jsPDF): number {
   return doc.internal.pageSize.getWidth() - PAGE_MARGIN * 2
-}
-
-function normalizeText(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
 }
 
 function setFill(doc: jsPDF, color: RgbColor): void {

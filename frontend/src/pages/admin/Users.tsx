@@ -130,8 +130,6 @@ export function UsersPage() {
             name: getUserName(user),
             email: user.email ?? undefined,
             phone: user.phone ?? undefined,
-            birthDate: user.birthDate ?? undefined,
-            gender: user.gender ?? undefined,
         })
         setGeneratingPdfId(null)
     }
@@ -298,8 +296,6 @@ function UserDetails({ user, generatingPdfId, onDownloadTest }: UserDetailsProps
                 <InfoColumn title="Cadastro">
                     <DetailRow label="Nome completo" value={getUserName(user)} />
                     <DetailRow label="ID do usuário" value={user.id} />
-                    <DetailRow label="Nascimento" value={formatDate(user.birthDate)} />
-                    <DetailRow label="Gênero" value={getText(user.gender)} />
                 </InfoColumn>
 
                 <InfoColumn title="Acompanhamento">

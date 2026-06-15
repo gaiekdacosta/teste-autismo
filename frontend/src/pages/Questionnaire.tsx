@@ -178,8 +178,6 @@ export function QuestionnairePage() {
 
         const avaliado = await createAvaliado({
             nome: user.name,
-            data_nascimento: user.birthDate || undefined,
-            genero: user.gender || undefined,
         })
 
         setAvaliadoId(avaliado.id)

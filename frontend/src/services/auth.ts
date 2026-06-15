@@ -15,8 +15,6 @@ export type AuthUser = {
   name?: string
   phone?: string
   avatarUrl?: string
-  birthDate?: string
-  gender?: string
 }
 
 export type LoginCredentials = {
@@ -28,8 +26,6 @@ export type RegisterCredentials = {
   name: string
   email: string
   phone: string
-  birthDate: string
-  gender: string
   password: string
 }
 
@@ -78,8 +74,6 @@ function mapAuthUser(user?: User | null): AuthUser | undefined {
     name: getMetadataValue(user, 'name') ?? getMetadataValue(user, 'full_name'),
     phone: user.phone ?? getMetadataValue(user, 'phone'),
     avatarUrl: getMetadataValue(user, 'avatar_url'),
-    birthDate: getMetadataValue(user, 'birthDate'),
-    gender: getMetadataValue(user, 'gender'),
   }
 }
 
