@@ -84,21 +84,16 @@ export function RegisterPage() {
         return baseClass
     }
 
-    const isFormValid = useMemo(() => {
-        const phoneNumbers = form.phone.replace(/\D/g, '')
-
-        return (
-            form.name.trim().length >= 3 &&
-            /\S+@\S+\.\S+/.test(form.email) &&
-            phoneNumbers.length >= 10 &&
-            phoneNumbers.length <= 13 &&
-            form.password.trim().length >= 6 &&
-            form.password === form.confirmPassword
-        )
-    }, [form])
-
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
+
+        setTouched({
+            name: true,
+            email: true,
+            phone: true,
+            password: true,
+            confirmPassword: true,
+        })
 
         const phoneNumbers = form.phone.replace(/\D/g, '')
 
@@ -369,7 +364,7 @@ export function RegisterPage() {
                         <div className="space-y-4 pt-1">
                             <Button
                                 type="submit"
-                                disabled={!isFormValid || isSubmitting}
+                                disabled={isSubmitting}
                                 className="h-12 w-full"
                             >
                                 {isSubmitting ? 'Criando conta...' : 'Criar conta'}
