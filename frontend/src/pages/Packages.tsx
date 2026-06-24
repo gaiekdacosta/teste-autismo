@@ -1,14 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import type { IconType } from 'react-icons'
 import {
     FiArrowRight,
+    FiAward,
+    FiBook,
+    FiBookOpen,
+    FiBriefcase,
     FiCheck,
     FiClock,
     FiCreditCard,
+    FiInfo,
     FiShield,
 } from 'react-icons/fi'
+import { FaWhatsapp } from 'react-icons/fa'
 
 import { listServices, type ServiceCatalogItem } from '@/services/servicos'
+import { getContato, type Contato } from '@/services/testes'
 
 const serviceEyebrows: Record<ServiceCatalogItem['id'], string> = {
     'testes-consultas': 'Pacote completo',
@@ -41,9 +49,92 @@ function parseDescriptionItems(description: string) {
         .filter((line) => line.length > 0)
 }
 
+function buildWhatsappUrl(rawPhone: string | undefined, message: string) {
+    let cleanNumber = (rawPhone ?? '5511999999999').replace(/\D/g, '')
+
+    if (cleanNumber.length === 10 || cleanNumber.length === 11) {
+        cleanNumber = `55${cleanNumber}`
+    }
+
+    return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`
+}
+
+type BenefitSection = {
+    icon: IconType
+    title: string
+    items?: string[]
+    paragraphs?: string[]
+}
+
+const laudoBenefits: BenefitSection[] = [
+    {
+        icon: FiBookOpen,
+        title: '1. Ambiente educacional',
+        items: [
+            'Solicitação de recursos de acessibilidade em Vestibulares, ENEM e processos seletivos',
+            '1h adicional em provas de Vestibular, ENEM e Concursos Públicos',
+            'Adaptações razoáveis durante provas e avaliações escolares (sala separada, ambiente com menor estímulo sensorial, isolamento acústico e outros recursos de acessibilidade)',
+            'Atendimento Educacional Especializado (AEE)',
+            'Adaptações curriculares quando necessárias',
+        ],
+    },
+    {
+        icon: FiBriefcase,
+        title: '2. Ambiente de Trabalho',
+        items: [
+            'Participação em vagas destinadas a Pessoas com Deficiência (PcD) em empresas privadas com mais de 100 empregados',
+            'Adaptações do ambiente de trabalho (sala separada, ambiente com menor estímulo sensorial, isolamento acústico e outros recursos de acessibilidade)',
+            'Flexibilizações compatíveis com as necessidades do trabalhador',
+            'Solicitação de trabalho remoto (home office), quando houver justificativa técnica e compatibilidade com a função exercida',
+            'Solicitação de redução de carga horária, ajustes de jornada ou adaptações da rotina laboral, conforme análise da empresa e da medicina ocupacional',
+        ],
+    },
+    {
+        icon: FiAward,
+        title: '3. Concursos públicos',
+        items: [
+            'Inscrição em vagas reservadas para Pessoas com Deficiência (PcD), quando previstas no edital',
+            'Solicitação de 1h adicional para realização das provas',
+            'Solicitação de sala separada e demais recursos de acessibilidade',
+            'Solicitação de adaptações durante provas práticas, discursivas ou etapas complementares do certame',
+        ],
+    },
+    {
+        icon: FiBook,
+        title: '4. Universidades e vestibulares',
+        items: [
+            'Participação em cotas destinadas a Pessoas com Deficiência (PcD), quando previstas pela instituição',
+            'Solicitação de recursos de acessibilidade acadêmica',
+            'Apoio pedagógico especializado',
+            'Adaptações acadêmicas previstas pela instituição de ensino',
+            'Flexibilizações curriculares quando cabíveis',
+        ],
+    },
+    {
+        icon: FiCreditCard,
+        title: '5. Benefícios e identificação',
+        items: [
+            'Emissão da CIPTEA (Carteira de Identificação da Pessoa com Transtorno do Espectro Autista)',
+            'Atendimento prioritário nos termos da legislação vigente',
+            'Solicitação de benefícios e programas específicos previstos em leis federais, estaduais e municipais',
+            'Solicitação de isenção de IPVA, IPI e ICMS, quando previstos na legislação vigente e observados os critérios definidos pelos órgãos competentes',
+            'Utilização como documentação médica em processos administrativos e requerimentos de direitos',
+        ],
+    },
+    {
+        icon: FiInfo,
+        title: '6. Importante',
+        paragraphs: [
+            'O laudo médico é um documento técnico elaborado após avaliação clínica individualizada, contendo histórico clínico, sintomas observados, prejuízos funcionais identificados, diagnóstico e respectivo enquadramento legal da condição. Com ele podem ser solicitados benefícios, cotas, isenções, adaptações e recursos previstos na legislação vigente, sujeitos à análise dos órgãos ou instituições competentes.',
+            'A concessão de direitos dependerá da análise da instituição de ensino, banca examinadora, órgão público, empresa, setor de recursos humanos, medicina ocupacional ou perícia responsável, observadas as normas aplicáveis a cada caso concreto.',
+        ],
+    },
+]
+
 export function PackagesPage() {
     const navigate = useNavigate()
     const [services, setServices] = useState<ServiceCatalogItem[]>([])
+    const [contact, setContact] = useState<Contato | null>(null)
     const [errorMessage, setErrorMessage] = useState('')
     const [isLoading, setIsLoading] = useState(true)
 
@@ -83,11 +174,34 @@ export function PackagesPage() {
         }
     }, [])
 
+    useEffect(() => {
+        let isMounted = true
+
+        getContato()
+            .then((data) => {
+                if (isMounted) setContact(data)
+            })
+            .catch(() => {
+                // Contato é opcional: a página funciona sem ele.
+            })
+
+        return () => {
+            isMounted = false
+        }
+    }, [])
+
     const orderedServices = useMemo(() => {
         const highlighted = services.filter((service) => service.id === highlightedServiceId)
         const rest = services.filter((service) => service.id !== highlightedServiceId)
         return [...highlighted, ...rest]
     }, [services])
+
+    function openWhatsapp(message: string) {
+        window.open(
+            buildWhatsappUrl(contact?.whatsapp, contact?.mensagem || message),
+            '_blank',
+        )
+    }
 
     return (
         <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
@@ -154,11 +268,12 @@ export function PackagesPage() {
                 )}
 
                 {!isLoading && !errorMessage && orderedServices.length > 0 && (
-                    <section className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                    <section className="mt-12 grid items-stretch gap-5 md:grid-cols-2 lg:grid-cols-3">
                         {orderedServices.map((service) => {
                             const isHighlighted = service.id === highlightedServiceId
                             const descriptionItems = parseDescriptionItems(service.description)
                             const hasChecklist = descriptionItems.length > 1
+                            const showWhatsapp = service.grantsConsultationAccess
 
                             return (
                                 <article
@@ -181,6 +296,7 @@ export function PackagesPage() {
                                     <h2 className="mt-2 text-lg font-bold leading-snug text-[var(--foreground)]">
                                         {service.name}
                                     </h2>
+
                                     {hasChecklist ? (
                                         <ul className="mt-4 flex flex-col gap-2.5">
                                             {descriptionItems.map((item) => (
@@ -210,18 +326,35 @@ export function PackagesPage() {
                                         </p>
                                     </div>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => navigate('/register')}
-                                        className={`mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition ${
-                                            isHighlighted
-                                                ? 'bg-[var(--primary)] text-black hover:bg-[var(--primary-hover)]'
-                                                : 'border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/10'
-                                        }`}
-                                    >
-                                        Quero este pacote
-                                        <FiArrowRight className="h-4 w-4" />
-                                    </button>
+                                    <div className="mt-8 flex flex-col gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate('/register')}
+                                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition ${
+                                                isHighlighted
+                                                    ? 'bg-[var(--primary)] text-black hover:bg-[var(--primary-hover)]'
+                                                    : 'border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/10'
+                                            }`}
+                                        >
+                                            Quero este pacote
+                                            <FiArrowRight className="h-4 w-4" />
+                                        </button>
+
+                                        {showWhatsapp && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    openWhatsapp(
+                                                        `Olá! Tenho interesse no pacote "${service.name}" e gostaria de agendar minha avaliação.`,
+                                                    )
+                                                }
+                                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:border-[var(--primary)]/60"
+                                            >
+                                                <FaWhatsapp className="h-4 w-4 text-[var(--primary)]" />
+                                                Agendar pelo WhatsApp
+                                            </button>
+                                        )}
+                                    </div>
                                 </article>
                             )
                         })}
@@ -254,19 +387,80 @@ export function PackagesPage() {
                             </h3>
                         </div>
                         <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-                            Após criar sua conta e concluir o pagamento, você recebe as instruções para
-                            realizar o teste. Em seguida agendamos a consulta e a emissão do laudo,
-                            quando indicado.
+                            Após a compra, você recebe por e-mail e WhatsApp as instruções para realizar
+                            o teste. Entraremos em contato para agendar um horário para a consulta e a
+                            emissão do laudo.
                         </p>
                     </div>
                 </section>
 
+                <section className="mt-16">
+                    <h2 className="text-center text-xl font-extrabold tracking-tight text-[var(--foreground)] sm:text-2xl">
+                        Benefícios e possíveis utilizações do Laudo Médico de Autismo
+                    </h2>
+
+                    <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                        {laudoBenefits.map(({ icon: Icon, title, items, paragraphs }) => (
+                            <article
+                                key={title}
+                                className="flex flex-col rounded-2xl border border-[var(--border)] bg-[#070707] p-6"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary)]/10 text-[var(--primary)]">
+                                        <Icon className="h-5 w-5" />
+                                    </span>
+                                    <h3 className="text-base font-bold leading-snug text-[var(--foreground)]">
+                                        {title}
+                                    </h3>
+                                </div>
+
+                                {items && (
+                                    <ul className="mt-5 flex flex-col gap-3">
+                                        {items.map((item) => (
+                                            <li
+                                                key={item}
+                                                className="flex items-start gap-3 text-sm leading-6 text-[var(--muted)]"
+                                            >
+                                                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--primary)]/10 text-[var(--primary)]">
+                                                    <FiCheck className="h-3 w-3" />
+                                                </span>
+                                                <span>{item}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+
+                                {paragraphs && (
+                                    <div className="mt-5 flex flex-col gap-3">
+                                        {paragraphs.map((paragraph, index) => (
+                                            <p
+                                                key={index}
+                                                className="text-sm leading-6 text-[var(--muted)]"
+                                            >
+                                                {paragraph}
+                                            </p>
+                                        ))}
+                                    </div>
+                                )}
+                            </article>
+                        ))}
+                    </div>
+
+                    <p className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 py-5 text-center text-sm leading-7 text-[var(--muted)]">
+                        Muitos adultos procuram avaliação para autismo não apenas para compreender
+                        melhor suas dificuldades ao longo da vida, mas também para obter documentação
+                        médica adequada para solicitar adaptações acadêmicas, profissionais e
+                        administrativas previstas na legislação.
+                    </p>
+                </section>
+
                 <section className="mt-12 flex flex-col items-center gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center">
                     <h3 className="text-lg font-bold text-[var(--foreground)]">
-                        Pronto para começar?
+                        Dúvidas? Fale conosco e agende sua avaliação.
                     </h3>
                     <p className="max-w-xl text-sm leading-6 text-[var(--muted)]">
-                        Crie sua conta para escolher o pacote e finalizar o pagamento com segurança.
+                        Nossa equipe está pronta para te orientar. Crie sua conta para escolher o
+                        pacote e finalizar o pagamento com segurança.
                     </p>
                     <div className="flex flex-col gap-3 sm:flex-row">
                         <button
@@ -279,10 +473,15 @@ export function PackagesPage() {
                         </button>
                         <button
                             type="button"
-                            onClick={() => navigate('/login')}
-                            className="inline-flex items-center justify-center rounded-xl border border-[var(--border)] px-6 py-3 text-sm font-medium text-[var(--foreground)] transition hover:border-[var(--primary)]/60"
+                            onClick={() =>
+                                openWhatsapp(
+                                    'Olá! Gostaria de mais informações sobre a avaliação de autismo.',
+                                )
+                            }
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--border)] px-6 py-3 text-sm font-medium text-[var(--foreground)] transition hover:border-[var(--primary)]/60"
                         >
-                            Já tenho conta
+                            <FaWhatsapp className="h-4 w-4 text-[var(--primary)]" />
+                            Falar no WhatsApp
                         </button>
                     </div>
                 </section>
