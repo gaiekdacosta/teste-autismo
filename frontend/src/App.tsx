@@ -13,6 +13,7 @@ import { RegisterPage } from './pages/Register';
 import { ResetPasswordPage } from './pages/ResetPassword';
 import { Home } from './pages/Home'
 import { OurServices } from './pages/OurServices'
+import { PackagesPage } from './pages/Packages'
 
 import { supabase } from './utils/supabase'
 
@@ -310,6 +311,11 @@ function App() {
         <Route
           path="/reset-password"
           element={isAuthenticated ? <Navigate to="/home" replace /> : <ResetPasswordPage />}
+        />
+
+        <Route
+          path="/pacotes"
+          element={<PackagesPage />}
         />
 
         <Route
