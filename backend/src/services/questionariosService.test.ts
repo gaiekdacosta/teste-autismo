@@ -278,20 +278,53 @@ describe("QuestionariosService", () => {
     assert.equal(questionario.questoes[0].pergunta, "Nova pergunta");
   });
 
-  it("bloqueia atualizacao de questoes quando ha testes vinculados", async () => {
+  it("cria nova versao ao alterar questoes quando ha testes vinculados", async () => {
     const repository = new FakeQuestionariosRepository([
-      buildQuestionario({ id: "questionario-1" }),
+      buildQuestionario({ id: "questionario-base", versao: 1, ativo: true }),
     ]);
-    repository.addLinkedTests("questionario-1");
+    repository.addLinkedTests("questionario-base");
     const service = new QuestionariosService(repository);
 
-    await assertAppError(
-      () =>
-        service.update("questionario-1", {
-          questoes: buildQuestaoInput(),
-        }),
-      409,
-    );
+    const novaVersao = await service.update("questionario-base", {
+      questoes: buildQuestaoInput(),
+    });
+
+    // Retorna uma nova versao, ativa, com as perguntas editadas.
+    assert.notEqual(novaVersao.id, "questionario-base");
+    assert.equal(novaVersao.versao, 2);
+    assert.equal(novaVersao.ativo, true);
+    assert.equal(novaVersao.questoes[0].pergunta, "Nova pergunta");
+
+    // O questionario original permanece intacto e desativado.
+    const original = await service.getById("questionario-base");
+    assert.equal(original.versao, 1);
+    assert.equal(original.ativo, false);
+    assert.equal(original.questoes[0].pergunta, "Pergunta 1");
+  });
+
+  it("nao cria nova versao quando as questoes nao mudaram", async () => {
+    const repository = new FakeQuestionariosRepository([
+      buildQuestionario({ id: "questionario-base", versao: 1 }),
+    ]);
+    repository.addLinkedTests("questionario-base");
+    const service = new QuestionariosService(repository);
+
+    const atualizado = await service.update("questionario-base", {
+      titulo: "Titulo novo",
+      questoes: [
+        {
+          posicao: 1,
+          pergunta: "Pergunta 1",
+          alternativas: [{ posicao: 1, texto: "Alternativa 1", valor: 0 }],
+        },
+      ],
+    });
+
+    // Mesmo id, sem incrementar versao, apenas escalares atualizados.
+    assert.equal(atualizado.id, "questionario-base");
+    assert.equal(atualizado.versao, 1);
+    assert.equal(atualizado.titulo, "Titulo novo");
+    assert.equal((await service.list()).length, 1);
   });
 
   it("ativa um questionario e desativa os demais", async () => {

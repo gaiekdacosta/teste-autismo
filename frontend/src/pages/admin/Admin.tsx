@@ -227,6 +227,8 @@ export function AdminPage() {
             setErrorMessage('')
             setSuccessMessage('')
 
+            const versaoAnterior = questionario.versao
+
             const updatedQuestionario =
                 await updateQuestionario(
                     questionario.id,
@@ -251,7 +253,9 @@ export function AdminPage() {
             )
 
             setSuccessMessage(
-                'Questionário salvo na API.',
+                updatedQuestionario.versao > versaoAnterior
+                    ? `Como já havia testes respondidos, foi criada a versão ${updatedQuestionario.versao} do questionário.`
+                    : 'Questionário salvo na API.',
             )
         } catch (error) {
             setErrorMessage(getErrorMessage(error))

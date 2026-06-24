@@ -2,6 +2,8 @@ import { conflict, notFound } from "../errors/AppError";
 import { QuestionariosRepository } from "../repositories/questionariosRepository";
 import type {
   CreateQuestionarioInput,
+  Questao,
+  QuestaoInput,
   QuestionarioCompleto,
   QuestionarioResumo,
   UpdateQuestionarioInput,
@@ -66,7 +68,29 @@ export class QuestionariosService {
     id: string,
     input: UpdateQuestionarioInput,
   ): Promise<QuestionarioCompleto> {
-    await this.ensureExists(id);
+    const existing = await this.getById(id);
+
+    const questoesAlteradas =
+      input.questoes !== undefined &&
+      !this.questoesIguais(existing.questoes, input.questoes);
+
+    if (questoesAlteradas) {
+      const hasLinkedTests =
+        await this.questionariosRepository.hasLinkedTests(id);
+
+      // Quando ja existem testes respondidos, nao alteramos as perguntas no
+      // lugar (isso corromperia o historico). Criamos uma nova versao ativa e
+      // mantemos a anterior intacta para os testes ja vinculados a ela.
+      if (hasLinkedTests) {
+        return this.create({
+          titulo: input.titulo ?? existing.titulo,
+          descricao: input.descricao ?? existing.descricao,
+          versao: existing.versao + 1,
+          ativo: true,
+          questoes: input.questoes!,
+        });
+      }
+    }
 
     if (input.ativo === true) {
       await this.questionariosRepository.deactivateOthers(id);
@@ -74,16 +98,8 @@ export class QuestionariosService {
 
     await this.questionariosRepository.updateScalars(id, input);
 
-    if (input.questoes) {
-      const hasLinkedTests = await this.questionariosRepository.hasLinkedTests(id);
-
-      if (hasLinkedTests) {
-        throw conflict(
-          "Não é possível alterar as perguntas de um questionário que já possui testes respondidos.",
-        );
-      }
-
-      await this.questionariosRepository.replaceQuestoes(id, input.questoes);
+    if (questoesAlteradas) {
+      await this.questionariosRepository.replaceQuestoes(id, input.questoes!);
     }
 
     return this.getById(id);
@@ -116,6 +132,37 @@ export class QuestionariosService {
     }
 
     await this.questionariosRepository.deleteById(id);
+  }
+
+  private questoesIguais(
+    atuais: Questao[],
+    novas: QuestaoInput[],
+  ): boolean {
+    if (atuais.length !== novas.length) {
+      return false;
+    }
+
+    return atuais.every((atual, index) => {
+      const nova = novas[index];
+
+      if (
+        atual.posicao !== nova.posicao ||
+        atual.pergunta.trim() !== nova.pergunta.trim() ||
+        atual.alternativas.length !== nova.alternativas.length
+      ) {
+        return false;
+      }
+
+      return atual.alternativas.every((alternativa, alternativaIndex) => {
+        const novaAlternativa = nova.alternativas[alternativaIndex];
+
+        return (
+          alternativa.posicao === novaAlternativa.posicao &&
+          alternativa.texto.trim() === novaAlternativa.texto.trim() &&
+          alternativa.valor === novaAlternativa.valor
+        );
+      });
+    });
   }
 
   private async ensureExists(id: string): Promise<void> {
