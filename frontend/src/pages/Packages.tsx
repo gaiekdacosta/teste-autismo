@@ -3,11 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import {
     FiArrowRight,
     FiCheck,
-    FiClipboard,
     FiClock,
     FiCreditCard,
     FiShield,
-    FiVideo,
 } from 'react-icons/fi'
 
 import { listServices, type ServiceCatalogItem } from '@/services/servicos'
@@ -34,18 +32,13 @@ function formatInstallment(priceInCents: number, installments = 12) {
     return currencyFormatter.format(priceInCents / 100 / installments)
 }
 
-function getServiceBenefits(service: ServiceCatalogItem) {
-    const benefits = []
-
-    if (service.grantsTestAccess) {
-        benefits.push({ label: 'Questionário e testes de rastreio', icon: FiClipboard })
-    }
-
-    if (service.grantsConsultationAccess) {
-        benefits.push({ label: 'Consulta médica para avaliação', icon: FiVideo })
-    }
-
-    return benefits
+function parseDescriptionItems(description: string) {
+    return description
+        // Quebra por linha ou imediatamente antes de cada marcador de check.
+        .split(/\r?\n|(?=[✅✔☑])/u)
+        // Remove marcadores no início (✅, ✔, ☑, •, -, *) e espaços.
+        .map((line) => line.replace(/^[\s✅✔☑️•\-–*]+/u, '').trim())
+        .filter((line) => line.length > 0)
 }
 
 export function PackagesPage() {
@@ -164,7 +157,8 @@ export function PackagesPage() {
                     <section className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                         {orderedServices.map((service) => {
                             const isHighlighted = service.id === highlightedServiceId
-                            const benefits = getServiceBenefits(service)
+                            const descriptionItems = parseDescriptionItems(service.description)
+                            const hasChecklist = descriptionItems.length > 1
 
                             return (
                                 <article
@@ -187,9 +181,25 @@ export function PackagesPage() {
                                     <h2 className="mt-2 text-lg font-bold leading-snug text-[var(--foreground)]">
                                         {service.name}
                                     </h2>
-                                    <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                                        {service.description}
-                                    </p>
+                                    {hasChecklist ? (
+                                        <ul className="mt-4 flex flex-col gap-2.5">
+                                            {descriptionItems.map((item) => (
+                                                <li
+                                                    key={item}
+                                                    className="flex items-start gap-3 text-sm leading-6 text-[var(--muted)]"
+                                                >
+                                                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--primary)]/10 text-[var(--primary)]">
+                                                        <FiCheck className="h-3 w-3" />
+                                                    </span>
+                                                    <span>{item}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                                            {descriptionItems[0] ?? service.description}
+                                        </p>
+                                    )}
 
                                     <div className="mt-6">
                                         <strong className="text-3xl font-extrabold text-[var(--foreground)]">
@@ -199,25 +209,6 @@ export function PackagesPage() {
                                             ou 12x de {formatInstallment(service.priceInCents)} no cartão
                                         </p>
                                     </div>
-
-                                    {benefits.length > 0 && (
-                                        <ul className="mt-6 flex flex-col gap-3">
-                                            {benefits.map(({ label, icon: Icon }) => (
-                                                <li
-                                                    key={label}
-                                                    className="flex items-start gap-3 text-sm text-[var(--muted)]"
-                                                >
-                                                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--primary)]/10 text-[var(--primary)]">
-                                                        <FiCheck className="h-3 w-3" />
-                                                    </span>
-                                                    <span className="flex items-center gap-2">
-                                                        <Icon className="h-4 w-4 text-[var(--primary)]" />
-                                                        {label}
-                                                    </span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
 
                                     <button
                                         type="button"
