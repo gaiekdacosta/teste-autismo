@@ -36,9 +36,9 @@ function formatPrice(priceInCents: number) {
     return currencyFormatter.format(priceInCents / 100)
 }
 
-function formatInstallment(priceInCents: number, installments = 12) {
-    return currencyFormatter.format(priceInCents / 100 / installments)
-}
+// function formatInstallment(priceInCents: number, installments = 12) {
+//     return currencyFormatter.format(priceInCents / 100 / installments)
+// }
 
 function parseDescriptionItems(description: string) {
     return description
@@ -273,16 +273,15 @@ export function PackagesPage() {
                             const isHighlighted = service.id === highlightedServiceId
                             const descriptionItems = parseDescriptionItems(service.description)
                             const hasChecklist = descriptionItems.length > 1
-                            const showWhatsapp = service.grantsConsultationAccess
+                            // const showWhatsapp = service.grantsConsultationAccess
 
                             return (
                                 <article
                                     key={service.id}
-                                    className={`relative flex flex-col rounded-2xl border bg-[#070707] p-6 transition ${
-                                        isHighlighted
-                                            ? 'border-[var(--primary)] shadow-[0_0_0_2px_rgba(76,175,80,0.45)] lg:-translate-y-2'
-                                            : 'border-[var(--border)] hover:border-[var(--primary)]/50'
-                                    }`}
+                                    className={`relative flex flex-col rounded-2xl border bg-[#070707] p-6 transition ${isHighlighted
+                                        ? 'border-[var(--primary)] shadow-[0_0_0_2px_rgba(76,175,80,0.45)] lg:-translate-y-2'
+                                        : 'border-[var(--border)] hover:border-[var(--primary)]/50'
+                                        }`}
                                 >
                                     {isHighlighted && (
                                         <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--primary)] px-3 py-1 text-xs font-bold text-black">
@@ -322,7 +321,7 @@ export function PackagesPage() {
                                             {formatPrice(service.priceInCents)}
                                         </strong>
                                         <p className="mt-1 text-xs text-[var(--muted)]">
-                                            ou 12x de {formatInstallment(service.priceInCents)} no cartão
+                                            Pix ou até 12x no cartão
                                         </p>
                                     </div>
 
@@ -330,30 +329,29 @@ export function PackagesPage() {
                                         <button
                                             type="button"
                                             onClick={() => navigate('/register')}
-                                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition ${
-                                                isHighlighted
-                                                    ? 'bg-[var(--primary)] text-black hover:bg-[var(--primary-hover)]'
-                                                    : 'border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/10'
-                                            }`}
+                                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition ${isHighlighted
+                                                ? 'bg-[var(--primary)] text-black hover:bg-[var(--primary-hover)]'
+                                                : 'border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/10'
+                                                }`}
                                         >
                                             Quero este pacote
                                             <FiArrowRight className="h-4 w-4" />
                                         </button>
 
-                                        {showWhatsapp && (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    openWhatsapp(
-                                                        `Olá! Tenho interesse no pacote "${service.name}" e gostaria de agendar minha avaliação.`,
-                                                    )
-                                                }
-                                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:border-[var(--primary)]/60"
-                                            >
-                                                <FaWhatsapp className="h-4 w-4 text-[var(--primary)]" />
-                                                Agendar pelo WhatsApp
-                                            </button>
-                                        )}
+                                        {/* {showWhatsapp && ( */}
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                openWhatsapp(
+                                                    `Olá! Tenho interesse no pacote "${service.name}" e gostaria de agendar minha avaliação.`,
+                                                )
+                                            }
+                                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:border-[var(--primary)]/60"
+                                        >
+                                            <FaWhatsapp className="h-4 w-4 text-[var(--primary)]" />
+                                            Agendar pelo WhatsApp
+                                        </button>
+                                        {/* )} */}
                                     </div>
                                 </article>
                             )
