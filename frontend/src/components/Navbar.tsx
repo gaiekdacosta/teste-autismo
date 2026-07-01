@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { NavLink, useLocation } from "react-router-dom";
 import {
     FiChevronDown,
@@ -17,6 +18,24 @@ import {
     getAdministradorAtual,
     getCachedAdminAccess,
 } from "../services/administradores";
+import { getStoredSession } from "../services/auth";
+import { supabase } from "../utils/supabase";
+
+function getSessionUserName() {
+    const user = getStoredSession()?.user
+    return user?.name ?? user?.email ?? ""
+}
+
+function getUserNameFromSession(session: Session | null) {
+    if (!session?.user) return ""
+    const metadata = session.user.user_metadata ?? {}
+    return (
+        (typeof metadata.name === "string" && metadata.name) ||
+        (typeof metadata.full_name === "string" && metadata.full_name) ||
+        session.user.email ||
+        ""
+    )
+}
 
 const menuItems = [
     { label: "Tela inicial", to: "/home", icon: FiGrid },
@@ -34,7 +53,18 @@ const adminItems = [
 export function Navbar() {
     const location = useLocation()
     const [hasAdminAccess, setHasAdminAccess] = useState(() => getCachedAdminAccess() === true)
+    const [userName, setUserName] = useState(() => getSessionUserName())
     const isAdminSectionActive = adminItems.some((item) => item.to === location.pathname)
+
+    useEffect(() => {
+        const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUserName(getUserNameFromSession(session))
+        })
+
+        return () => {
+            data.subscription.unsubscribe()
+        }
+    }, [])
 
     useEffect(() => {
         let isActive = true
@@ -144,7 +174,7 @@ export function Navbar() {
                 </nav>
 
                 <div className="mt-auto">
-                    <Profile name="Pelipe Gaiek Da Costa" />
+                    <Profile name={userName} />
                 </div>
             </aside>
 
