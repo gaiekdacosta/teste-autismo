@@ -7,7 +7,7 @@ export type ServicePurchaseStatus =
   (typeof SERVICE_PURCHASE_STATUS)[keyof typeof SERVICE_PURCHASE_STATUS];
 
 export type ServiceCatalogItem = {
-  id: "testes-consultas" | "apenas-testes" | "apenas-consulta" | "testes-consulta-laudo";
+  id: string;
   name: string;
   description: string;
   priceInCents: number;
@@ -17,7 +17,7 @@ export type ServiceCatalogItem = {
 };
 
 export type CreateServicePurchaseInput = {
-  serviceId: ServiceCatalogItem["id"];
+  serviceId: string;
   testMode?: boolean;
 };
 
@@ -26,15 +26,21 @@ export type UpdateServiceInput = Partial<{
   description: string;
   priceInCents: number;
   active: boolean;
+  grantsTestAccess: boolean;
+  grantsConsultationAccess: boolean;
 }>;
 
 export type ServicePackageRow = {
-  service_id: ServiceCatalogItem["id"];
+  service_id: string;
   pacote: string;
   descricao: string;
   valor: number | string;
   posicao: number | null;
   ativo: boolean | null;
+  // Regras de acesso vindas do banco (Parte 2). Podem ser null enquanto a
+  // migração de colunas nao foi aplicada — nesse caso usamos o catalogo legado.
+  concede_testes?: boolean | null;
+  concede_consulta?: boolean | null;
 };
 
 export type InfinitePayWebhookInput = {

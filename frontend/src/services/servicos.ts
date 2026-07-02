@@ -1,7 +1,7 @@
 import { jsonRequest, request } from './api'
 
 export type ServiceCatalogItem = {
-  id: 'testes-consultas' | 'apenas-testes' | 'apenas-consulta' | 'testes-consulta-laudo'
+  id: string
   name: string
   description: string
   priceInCents: number
@@ -59,6 +59,8 @@ export type UpdateServiceInput = Partial<{
   description: string
   priceInCents: number
   active: boolean
+  grantsTestAccess: boolean
+  grantsConsultationAccess: boolean
 }>
 
 export function listServices() {

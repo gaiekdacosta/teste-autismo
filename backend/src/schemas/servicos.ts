@@ -63,15 +63,7 @@ const serviceCatalogItemSchema = {
     "grantsConsultationAccess",
   ],
   properties: {
-    id: {
-      type: "string",
-      enum: [
-        "testes-consultas",
-        "apenas-testes",
-        "apenas-consulta",
-        "testes-consulta-laudo",
-      ],
-    },
+    id: { type: "string" },
     name: { type: "string" },
     description: { type: "string" },
     priceInCents: { type: "integer" },
@@ -86,15 +78,7 @@ const serviceParamsSchema = {
   type: "object",
   required: ["id"],
   properties: {
-    id: {
-      type: "string",
-      enum: [
-        "testes-consultas",
-        "apenas-testes",
-        "apenas-consulta",
-        "testes-consulta-laudo",
-      ],
-    },
+    id: { type: "string", minLength: 1 },
   },
   additionalProperties: false,
 } as const;
@@ -139,15 +123,7 @@ export const createServicePurchaseSchema: FastifySchema = {
     type: "object",
     required: ["serviceId"],
     properties: {
-      serviceId: {
-        type: "string",
-        enum: [
-          "testes-consultas",
-          "apenas-testes",
-          "apenas-consulta",
-          "testes-consulta-laudo",
-        ],
-      },
+      serviceId: { type: "string", minLength: 1 },
       testMode: { type: "boolean" },
     },
     additionalProperties: false,
@@ -189,6 +165,8 @@ export const updateServiceSchema: FastifySchema = {
       description: { type: "string", minLength: 1 },
       priceInCents: { type: "integer", minimum: 0 },
       active: { type: "boolean" },
+      grantsTestAccess: { type: "boolean" },
+      grantsConsultationAccess: { type: "boolean" },
     },
     additionalProperties: false,
   },

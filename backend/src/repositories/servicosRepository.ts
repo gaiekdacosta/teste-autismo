@@ -11,12 +11,39 @@ function throwSupabaseError(action: string, error: { message: string }): never {
   throw new Error(`Erro ao ${action}: ${error.message}`);
 }
 
+// Colunas do pacote. As de acesso (concede_*) sao opcionais: enquanto a migracao
+// que as cria nao for aplicada, caimos automaticamente no conjunto basico para
+// nao quebrar a listagem — o backend deploya em qualquer ordem em relacao ao banco.
+const PACKAGE_BASE_COLUMNS = "service_id, pacote, descricao, valor, posicao, ativo";
+const PACKAGE_COLUMNS = `${PACKAGE_BASE_COLUMNS}, concede_testes, concede_consulta`;
+
+function isMissingColumnError(error: { message?: string; code?: string }): boolean {
+  // Postgres 42703 = undefined_column (colunas de acesso ainda nao migradas).
+  return (
+    error.code === "42703" ||
+    /concede_testes|concede_consulta/.test(error.message ?? "")
+  );
+}
+
 export class ServicosRepository {
   async listServicePackages(): Promise<ServicePackageRow[]> {
     const { data, error } = await supabaseAdmin
       .from("servicos_pacotes")
-      .select("service_id, pacote, descricao, valor, posicao, ativo")
+      .select(PACKAGE_COLUMNS)
       .order("posicao", { ascending: true });
+
+    if (error && isMissingColumnError(error)) {
+      const fallback = await supabaseAdmin
+        .from("servicos_pacotes")
+        .select(PACKAGE_BASE_COLUMNS)
+        .order("posicao", { ascending: true });
+
+      if (fallback.error) {
+        throwSupabaseError("listar pacotes de servico", fallback.error);
+      }
+
+      return (fallback.data ?? []) as ServicePackageRow[];
+    }
 
     if (error) {
       throwSupabaseError("listar pacotes de servico", error);
@@ -29,30 +56,75 @@ export class ServicosRepository {
     serviceId: string,
     input: UpdateServiceInput,
   ): Promise<ServicePackageRow | null> {
-    const updateData: Record<string, string | number | boolean> = {};
+    // Campos base (sempre existem na tabela).
+    const baseUpdate: Record<string, string | number | boolean> = {};
 
     if (input.name !== undefined) {
-      updateData.pacote = input.name;
+      baseUpdate.pacote = input.name;
     }
 
     if (input.description !== undefined) {
-      updateData.descricao = input.description;
+      baseUpdate.descricao = input.description;
     }
 
     if (input.priceInCents !== undefined) {
-      updateData.valor = input.priceInCents / 100;
+      baseUpdate.valor = input.priceInCents / 100;
     }
 
     if (input.active !== undefined) {
-      updateData.ativo = input.active;
+      baseUpdate.ativo = input.active;
     }
+
+    // Campos de acesso (colunas concede_*, criadas pela migração da Parte 2).
+    const accessUpdate: Record<string, boolean> = {};
+
+    if (input.grantsTestAccess !== undefined) {
+      accessUpdate.concede_testes = input.grantsTestAccess;
+    }
+
+    if (input.grantsConsultationAccess !== undefined) {
+      accessUpdate.concede_consulta = input.grantsConsultationAccess;
+    }
+
+    const updateData = { ...baseUpdate, ...accessUpdate };
 
     const { data, error } = await supabaseAdmin
       .from("servicos_pacotes")
       .update(updateData)
       .eq("service_id", serviceId)
-      .select("service_id, pacote, descricao, valor, posicao, ativo")
+      .select(PACKAGE_COLUMNS)
       .maybeSingle();
+
+    if (error && isMissingColumnError(error)) {
+      // Colunas de acesso ainda nao migradas: salva apenas os campos base para
+      // nao bloquear a edicao. As flags de acesso so persistem apos a migração.
+      if (Object.keys(baseUpdate).length === 0) {
+        const current = await supabaseAdmin
+          .from("servicos_pacotes")
+          .select(PACKAGE_BASE_COLUMNS)
+          .eq("service_id", serviceId)
+          .maybeSingle();
+
+        if (current.error) {
+          throwSupabaseError("atualizar pacote de servico", current.error);
+        }
+
+        return current.data as ServicePackageRow | null;
+      }
+
+      const fallback = await supabaseAdmin
+        .from("servicos_pacotes")
+        .update(baseUpdate)
+        .eq("service_id", serviceId)
+        .select(PACKAGE_BASE_COLUMNS)
+        .maybeSingle();
+
+      if (fallback.error) {
+        throwSupabaseError("atualizar pacote de servico", fallback.error);
+      }
+
+      return fallback.data as ServicePackageRow | null;
+    }
 
     if (error) {
       throwSupabaseError("atualizar pacote de servico", error);

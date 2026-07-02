@@ -15,6 +15,8 @@ type ServicePrice = {
     description: string
     price: string
     active: boolean
+    grantsTestAccess: boolean
+    grantsConsultationAccess: boolean
 }
 
 type ServicesEditProps = {
@@ -34,6 +36,8 @@ function mapServiceToPrice(service: ServiceCatalogItem): ServicePrice {
         description: service.description,
         price: currencyFormatter.format(service.priceInCents / 100),
         active: service.active ?? true,
+        grantsTestAccess: service.grantsTestAccess ?? false,
+        grantsConsultationAccess: service.grantsConsultationAccess ?? false,
     }
 }
 
@@ -50,6 +54,37 @@ function parsePriceInCents(value: string) {
     }
 
     return Math.round(price * 100)
+}
+
+type ToggleRowProps = {
+    label: string
+    description?: string
+    checked: boolean
+    onChange: (checked: boolean) => void
+}
+
+function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
+    return (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+            <div className="min-w-0">
+                <span className="block text-sm font-medium">{label}</span>
+                {description && (
+                    <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                        {description}
+                    </span>
+                )}
+            </div>
+            <label className="relative inline-flex shrink-0 cursor-pointer items-center">
+                <input
+                    type="checkbox"
+                    className="peer sr-only"
+                    checked={checked}
+                    onChange={(event) => onChange(event.target.checked)}
+                />
+                <div className="peer h-6 w-11 rounded-full bg-[var(--border)] after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[var(--primary)] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full"></div>
+            </label>
+        </div>
+    )
 }
 
 export function ServicesEdit({
@@ -118,12 +153,14 @@ export function ServicesEdit({
             setServicesSuccessMessage('')
 
             const updatedService = await updateService(
-                service.id as ServiceCatalogItem['id'],
+                service.id,
                 {
                     name: service.name,
                     description: service.description,
                     priceInCents: parsePriceInCents(service.price),
                     active: service.active,
+                    grantsTestAccess: service.grantsTestAccess,
+                    grantsConsultationAccess: service.grantsConsultationAccess,
                 },
             )
 
@@ -268,19 +305,30 @@ export function ServicesEdit({
                                     </div>
                                 </label>
 
-                                <div className="mb-5 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
-                                    <span className="text-sm font-medium">
-                                        Exibir no site
-                                    </span>
-                                    <label className="relative inline-flex cursor-pointer items-center">
-                                        <input
-                                            type="checkbox"
-                                            className="peer sr-only"
-                                            checked={service.active}
-                                            onChange={(e) => updateServiceField(service.id, 'active', e.target.checked)}
-                                        />
-                                        <div className="peer h-6 w-11 rounded-full bg-[var(--border)] after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[var(--primary)] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full"></div>
-                                    </label>
+                                <div className="mb-5 space-y-2">
+                                    <ToggleRow
+                                        label="Exibir no site"
+                                        checked={service.active}
+                                        onChange={(checked) =>
+                                            updateServiceField(service.id, 'active', checked)
+                                        }
+                                    />
+                                    <ToggleRow
+                                        label="Libera testes"
+                                        description="Compra deste pacote libera o questionário e os testes de rastreio."
+                                        checked={service.grantsTestAccess}
+                                        onChange={(checked) =>
+                                            updateServiceField(service.id, 'grantsTestAccess', checked)
+                                        }
+                                    />
+                                    <ToggleRow
+                                        label="Libera consulta"
+                                        description="Compra deste pacote libera o agendamento de consulta."
+                                        checked={service.grantsConsultationAccess}
+                                        onChange={(checked) =>
+                                            updateServiceField(service.id, 'grantsConsultationAccess', checked)
+                                        }
+                                    />
                                 </div>
 
                                 <div className="mt-auto">

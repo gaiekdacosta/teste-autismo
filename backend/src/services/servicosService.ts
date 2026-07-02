@@ -19,7 +19,6 @@ import { SERVICE_PURCHASE_STATUS } from "../types/servicos";
 import { EmailService } from "./emailService";
 import { InfinitePayService } from "./infinitePayService";
 import {
-  findServiceById,
   formatPriceInCents,
   getDefaultServices,
   getServiceAccessRules,
@@ -55,21 +54,28 @@ function normalizePriceInCents(value: number | string): number {
   return Math.round(numericValue * 100);
 }
 
-function mapPackageToService(row: ServicePackageRow): ServiceCatalogItem {
-  const accessRules = getServiceAccessRules(row.service_id);
+function resolveAccessRules(
+  row: Pick<ServicePackageRow, "service_id" | "concede_testes" | "concede_consulta">,
+): Pick<ServiceCatalogItem, "grantsTestAccess" | "grantsConsultationAccess"> {
+  // Preferimos as flags vindas do banco; se ainda estiverem nulas (migração de
+  // colunas nao aplicada), caimos no catalogo legado para os pacotes conhecidos.
+  const legacy = getServiceAccessRules(row.service_id);
 
+  return {
+    grantsTestAccess: row.concede_testes ?? legacy.grantsTestAccess,
+    grantsConsultationAccess: row.concede_consulta ?? legacy.grantsConsultationAccess,
+  };
+}
+
+function mapPackageToService(row: ServicePackageRow): ServiceCatalogItem {
   return {
     id: row.service_id,
     name: row.pacote,
     description: row.descricao,
     priceInCents: normalizePriceInCents(row.valor),
     active: row.ativo ?? true,
-    ...accessRules,
+    ...resolveAccessRules(row),
   };
-}
-
-function isValidServiceId(id: string): id is ServiceCatalogItem["id"] {
-  return Boolean(findServiceById(id));
 }
 
 export class ServicosService {
@@ -95,10 +101,9 @@ export class ServicosService {
     serviceId: string,
     input: UpdateServiceInput,
   ): Promise<ServiceCatalogItem> {
-    if (!isValidServiceId(serviceId)) {
-      throw badRequest("Servico invalido.");
-    }
-
+    // A validacao passa a ser feita contra o banco: se o service_id nao existir,
+    // o repositorio retorna null e respondemos 404. Assim qualquer pacote criado
+    // no banco pode ser editado/ativado sem precisar de alteracao de codigo.
     const updatedPackage = await this.servicosRepository.updateServicePackage(
       serviceId,
       input,
@@ -181,15 +186,23 @@ export class ServicosService {
       (purchase) => purchase.status === SERVICE_PURCHASE_STATUS.paid,
     );
 
+    // Regras de acesso vindas do banco (com fallback ao catalogo legado),
+    // para que pacotes novos concedam o acesso correto sem alteracao de codigo.
+    const packages = await this.servicosRepository.listServicePackages();
+    const accessByServiceId = new Map(
+      packages.map((row) => [row.service_id, resolveAccessRules(row)] as const),
+    );
+
+    const rulesFor = (serviceId: string) =>
+      accessByServiceId.get(serviceId) ?? getServiceAccessRules(serviceId);
+
     return {
-      canUseTests: paidPurchases.some((purchase) => {
-        const service = getServiceAccessRules(purchase.service_id);
-        return service?.grantsTestAccess === true;
-      }),
-      canScheduleConsultation: paidPurchases.some((purchase) => {
-        const service = getServiceAccessRules(purchase.service_id);
-        return service?.grantsConsultationAccess === true;
-      }),
+      canUseTests: paidPurchases.some(
+        (purchase) => rulesFor(purchase.service_id).grantsTestAccess === true,
+      ),
+      canScheduleConsultation: paidPurchases.some(
+        (purchase) => rulesFor(purchase.service_id).grantsConsultationAccess === true,
+      ),
       paidPurchases,
     };
   }
