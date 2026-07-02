@@ -10,13 +10,15 @@
 -- cai no catálogo legado e nada quebra — mas o acesso só fica correto para os
 -- pacotes novos depois que este script rodar.
 --
--- concede_testes   = libera o questionário/testes de rastreio após a compra
--- concede_consulta = libera o agendamento de consulta após a compra
+-- concede_testes    = libera o questionário/testes de rastreio após a compra
+-- concede_consulta  = libera o agendamento de consulta após a compra
+-- destacar_whatsapp = torna o botão de WhatsApp o CTA principal do card no site
 -- =============================================================================
 
 alter table servicos_pacotes
   add column if not exists concede_testes boolean not null default false,
-  add column if not exists concede_consulta boolean not null default false;
+  add column if not exists concede_consulta boolean not null default false,
+  add column if not exists destacar_whatsapp boolean not null default false;
 
 -- Backfill dos pacotes existentes (ajuste conforme a regra de negócio de cada um).
 update servicos_pacotes set concede_testes = true,  concede_consulta = true
@@ -36,5 +38,5 @@ update servicos_pacotes set concede_testes = true,  concede_consulta = true
   where service_id = 'acompanhamento-completo';
 
 -- Conferência:
--- select service_id, pacote, ativo, concede_testes, concede_consulta
+-- select service_id, pacote, ativo, concede_testes, concede_consulta, destacar_whatsapp
 -- from servicos_pacotes order by posicao;

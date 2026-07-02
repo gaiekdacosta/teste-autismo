@@ -273,7 +273,10 @@ export function PackagesPage() {
                             const isHighlighted = service.id === highlightedServiceId
                             const descriptionItems = parseDescriptionItems(service.description)
                             const hasChecklist = descriptionItems.length > 1
-                            // const showWhatsapp = service.grantsConsultationAccess
+                            // Quando o pacote destaca o WhatsApp, ele vira o CTA principal
+                            // e "Quero este pacote" passa a secundario.
+                            const whatsappHighlighted = service.highlightWhatsapp === true
+                            const wantButtonProminent = isHighlighted && !whatsappHighlighted
 
                             return (
                                 <article
@@ -325,11 +328,13 @@ export function PackagesPage() {
                                         </p>
                                     </div>
 
-                                    <div className="mt-8 flex flex-col gap-3">
+                                    <div
+                                        className={`mt-8 flex gap-3 ${whatsappHighlighted ? 'flex-col-reverse' : 'flex-col'}`}
+                                    >
                                         <button
                                             type="button"
                                             onClick={() => navigate('/register')}
-                                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition ${isHighlighted
+                                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition ${wantButtonProminent
                                                 ? 'bg-[var(--primary)] text-black hover:bg-[var(--primary-hover)]'
                                                 : 'border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/10'
                                                 }`}
@@ -338,7 +343,6 @@ export function PackagesPage() {
                                             <FiArrowRight className="h-4 w-4" />
                                         </button>
 
-                                        {/* {showWhatsapp && ( */}
                                         <button
                                             type="button"
                                             onClick={() =>
@@ -346,12 +350,16 @@ export function PackagesPage() {
                                                     `Olá! Tenho interesse no pacote "${service.name}" e gostaria de agendar minha avaliação.`,
                                                 )
                                             }
-                                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--foreground)] transition hover:border-[var(--primary)]/60"
+                                            className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm transition ${whatsappHighlighted
+                                                ? 'bg-[#25D366] font-bold text-black hover:bg-[#20bd5a]'
+                                                : 'border border-[var(--border)] font-semibold text-[var(--foreground)] hover:border-[var(--primary)]/60'
+                                                }`}
                                         >
-                                            <FaWhatsapp className="h-4 w-4 text-[var(--primary)]" />
+                                            <FaWhatsapp
+                                                className={`h-4 w-4 ${whatsappHighlighted ? 'text-black' : 'text-[var(--primary)]'}`}
+                                            />
                                             Agendar pelo WhatsApp
                                         </button>
-                                        {/* )} */}
                                     </div>
                                 </article>
                             )

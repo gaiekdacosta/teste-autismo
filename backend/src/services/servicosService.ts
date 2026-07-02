@@ -74,6 +74,7 @@ function mapPackageToService(row: ServicePackageRow): ServiceCatalogItem {
     description: row.descricao,
     priceInCents: normalizePriceInCents(row.valor),
     active: row.ativo ?? true,
+    highlightWhatsapp: row.destacar_whatsapp ?? false,
     ...resolveAccessRules(row),
   };
 }

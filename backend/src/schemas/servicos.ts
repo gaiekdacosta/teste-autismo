@@ -70,6 +70,7 @@ const serviceCatalogItemSchema = {
     grantsTestAccess: { type: "boolean" },
     grantsConsultationAccess: { type: "boolean" },
     active: { type: "boolean" },
+    highlightWhatsapp: { type: "boolean" },
   },
   additionalProperties: false,
 } as const;
@@ -167,6 +168,7 @@ export const updateServiceSchema: FastifySchema = {
       active: { type: "boolean" },
       grantsTestAccess: { type: "boolean" },
       grantsConsultationAccess: { type: "boolean" },
+      highlightWhatsapp: { type: "boolean" },
     },
     additionalProperties: false,
   },

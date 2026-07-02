@@ -14,6 +14,7 @@ export type ServiceCatalogItem = {
   grantsTestAccess: boolean;
   grantsConsultationAccess: boolean;
   active?: boolean;
+  highlightWhatsapp?: boolean;
 };
 
 export type CreateServicePurchaseInput = {
@@ -28,6 +29,7 @@ export type UpdateServiceInput = Partial<{
   active: boolean;
   grantsTestAccess: boolean;
   grantsConsultationAccess: boolean;
+  highlightWhatsapp: boolean;
 }>;
 
 export type ServicePackageRow = {
@@ -41,6 +43,8 @@ export type ServicePackageRow = {
   // migração de colunas nao foi aplicada — nesse caso usamos o catalogo legado.
   concede_testes?: boolean | null;
   concede_consulta?: boolean | null;
+  // Destaca o botao do WhatsApp como CTA principal do pacote no site.
+  destacar_whatsapp?: boolean | null;
 };
 
 export type InfinitePayWebhookInput = {

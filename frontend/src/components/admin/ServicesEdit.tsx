@@ -17,6 +17,7 @@ type ServicePrice = {
     active: boolean
     grantsTestAccess: boolean
     grantsConsultationAccess: boolean
+    highlightWhatsapp: boolean
 }
 
 type ServicesEditProps = {
@@ -38,6 +39,7 @@ function mapServiceToPrice(service: ServiceCatalogItem): ServicePrice {
         active: service.active ?? true,
         grantsTestAccess: service.grantsTestAccess ?? false,
         grantsConsultationAccess: service.grantsConsultationAccess ?? false,
+        highlightWhatsapp: service.highlightWhatsapp ?? false,
     }
 }
 
@@ -161,6 +163,7 @@ export function ServicesEdit({
                     active: service.active,
                     grantsTestAccess: service.grantsTestAccess,
                     grantsConsultationAccess: service.grantsConsultationAccess,
+                    highlightWhatsapp: service.highlightWhatsapp,
                 },
             )
 
@@ -327,6 +330,14 @@ export function ServicesEdit({
                                         checked={service.grantsConsultationAccess}
                                         onChange={(checked) =>
                                             updateServiceField(service.id, 'grantsConsultationAccess', checked)
+                                        }
+                                    />
+                                    <ToggleRow
+                                        label="Destacar WhatsApp"
+                                        description="Torna o botão de WhatsApp o CTA principal do card, no lugar de 'Quero este pacote'."
+                                        checked={service.highlightWhatsapp}
+                                        onChange={(checked) =>
+                                            updateServiceField(service.id, 'highlightWhatsapp', checked)
                                         }
                                     />
                                 </div>

@@ -8,6 +8,7 @@ export type ServiceCatalogItem = {
   grantsTestAccess: boolean
   grantsConsultationAccess: boolean
   active?: boolean
+  highlightWhatsapp?: boolean
 }
 
 export type ServicePurchase = {
@@ -61,6 +62,7 @@ export type UpdateServiceInput = Partial<{
   active: boolean
   grantsTestAccess: boolean
   grantsConsultationAccess: boolean
+  highlightWhatsapp: boolean
 }>
 
 export function listServices() {

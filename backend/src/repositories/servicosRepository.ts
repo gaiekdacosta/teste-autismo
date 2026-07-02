@@ -11,17 +11,18 @@ function throwSupabaseError(action: string, error: { message: string }): never {
   throw new Error(`Erro ao ${action}: ${error.message}`);
 }
 
-// Colunas do pacote. As de acesso (concede_*) sao opcionais: enquanto a migracao
-// que as cria nao for aplicada, caimos automaticamente no conjunto basico para
-// nao quebrar a listagem — o backend deploya em qualquer ordem em relacao ao banco.
+// Colunas do pacote. As extras (concede_*, destacar_whatsapp) sao opcionais:
+// enquanto a migracao que as cria nao for aplicada, caimos automaticamente no
+// conjunto basico para nao quebrar a listagem — o backend deploya em qualquer
+// ordem em relacao ao banco.
 const PACKAGE_BASE_COLUMNS = "service_id, pacote, descricao, valor, posicao, ativo";
-const PACKAGE_COLUMNS = `${PACKAGE_BASE_COLUMNS}, concede_testes, concede_consulta`;
+const PACKAGE_COLUMNS = `${PACKAGE_BASE_COLUMNS}, concede_testes, concede_consulta, destacar_whatsapp`;
 
 function isMissingColumnError(error: { message?: string; code?: string }): boolean {
-  // Postgres 42703 = undefined_column (colunas de acesso ainda nao migradas).
+  // Postgres 42703 = undefined_column (colunas extras ainda nao migradas).
   return (
     error.code === "42703" ||
-    /concede_testes|concede_consulta/.test(error.message ?? "")
+    /concede_testes|concede_consulta|destacar_whatsapp/.test(error.message ?? "")
   );
 }
 
@@ -75,18 +76,22 @@ export class ServicosRepository {
       baseUpdate.ativo = input.active;
     }
 
-    // Campos de acesso (colunas concede_*, criadas pela migração da Parte 2).
-    const accessUpdate: Record<string, boolean> = {};
+    // Campos extras (colunas concede_* e destacar_whatsapp, criadas por migração).
+    const extraUpdate: Record<string, boolean> = {};
 
     if (input.grantsTestAccess !== undefined) {
-      accessUpdate.concede_testes = input.grantsTestAccess;
+      extraUpdate.concede_testes = input.grantsTestAccess;
     }
 
     if (input.grantsConsultationAccess !== undefined) {
-      accessUpdate.concede_consulta = input.grantsConsultationAccess;
+      extraUpdate.concede_consulta = input.grantsConsultationAccess;
     }
 
-    const updateData = { ...baseUpdate, ...accessUpdate };
+    if (input.highlightWhatsapp !== undefined) {
+      extraUpdate.destacar_whatsapp = input.highlightWhatsapp;
+    }
+
+    const updateData = { ...baseUpdate, ...extraUpdate };
 
     const { data, error } = await supabaseAdmin
       .from("servicos_pacotes")
@@ -96,8 +101,8 @@ export class ServicosRepository {
       .maybeSingle();
 
     if (error && isMissingColumnError(error)) {
-      // Colunas de acesso ainda nao migradas: salva apenas os campos base para
-      // nao bloquear a edicao. As flags de acesso so persistem apos a migração.
+      // Colunas extras ainda nao migradas: salva apenas os campos base para nao
+      // bloquear a edicao. As flags extras so persistem apos a migração.
       if (Object.keys(baseUpdate).length === 0) {
         const current = await supabaseAdmin
           .from("servicos_pacotes")
