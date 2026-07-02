@@ -17,6 +17,7 @@ import type {
 import { Contact } from '../../components/admin/Contact'
 import { MenuAdministrator } from '../../components/admin/MenuAdministrator'
 import { QuestionnaireEdit } from '../../components/admin/QuestionnaireEdit'
+import { useToast } from '../../components/ui/Toast'
 
 import type {
     Question,
@@ -151,6 +152,8 @@ export function AdminPage() {
     const [successMessage, setSuccessMessage] =
         useState('')
 
+    const toast = useToast()
+
     useEffect(() => {
         const controller = new AbortController()
 
@@ -218,6 +221,9 @@ export function AdminPage() {
             setErrorMessage(
                 'Carregue um questionário ativo antes de salvar.',
             )
+            toast.error(
+                'Carregue um questionário ativo antes de salvar.',
+            )
 
             return
         }
@@ -252,13 +258,16 @@ export function AdminPage() {
                 ),
             )
 
-            setSuccessMessage(
+            const message =
                 updatedQuestionario.versao > versaoAnterior
                     ? `Como já havia testes respondidos, foi criada a versão ${updatedQuestionario.versao} do questionário.`
-                    : 'Questionário salvo na API.',
-            )
+                    : 'Questionário salvo na API.'
+            setSuccessMessage(message)
+            toast.success(message)
         } catch (error) {
-            setErrorMessage(getErrorMessage(error))
+            const message = getErrorMessage(error)
+            setErrorMessage(message)
+            toast.error(message)
         } finally {
             setIsSavingQuestionario(false)
         }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { FiDollarSign, FiSave } from 'react-icons/fi'
 
 import { Button } from '../ui/Button'
+import { useToast } from '../ui/Toast'
 
 import {
     listServices,
@@ -98,6 +99,7 @@ export function ServicesEdit({
     const [savingServiceId, setSavingServiceId] = useState<string | null>(null)
     const [servicesErrorMessage, setServicesErrorMessage] = useState('')
     const [servicesSuccessMessage, setServicesSuccessMessage] = useState('')
+    const toast = useToast()
 
     useEffect(() => {
         let isMounted = true
@@ -176,12 +178,14 @@ export function ServicesEdit({
             )
 
             setServicesSuccessMessage('Serviço atualizado com sucesso.')
+            toast.success(`Pacote "${updatedService.name}" salvo com sucesso.`)
         } catch (error) {
-            setServicesErrorMessage(
+            const message =
                 error instanceof Error
                     ? error.message
-                    : 'Não foi possível salvar o serviço.',
-            )
+                    : 'Não foi possível salvar o serviço.'
+            setServicesErrorMessage(message)
+            toast.error(message)
         } finally {
             setSavingServiceId(null)
         }

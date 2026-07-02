@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FiMail, FiMessageCircle, FiSave, FiMessageSquare } from 'react-icons/fi'
 import { Button } from '../ui/Button'
+import { useToast } from '../ui/Toast'
 import { getContato, updateContato } from '../../services/testes'
 
 const inputClassName =
@@ -17,6 +18,7 @@ export function Contact() {
     const [isSavingContato, setIsSavingContato] = useState(false)
     const [contatoErrorMessage, setContatoErrorMessage] = useState('')
     const [contatoSuccessMessage, setContatoSuccessMessage] = useState('')
+    const toast = useToast()
 
     useEffect(() => {
         const controller = new AbortController()
@@ -53,16 +55,19 @@ export function Contact() {
 
         if (!whatsappValue) {
             setContatoErrorMessage('Informe o número de WhatsApp.')
+            toast.error('Informe o número de WhatsApp.')
             return
         }
 
         if (!emailValue) {
             setContatoErrorMessage('Informe o e-mail de contato.')
+            toast.error('Informe o e-mail de contato.')
             return
         }
 
         if (!mensagemValue) {
             setContatoErrorMessage('Informe a mensagem padrão do WhatsApp.')
+            toast.error('Informe a mensagem padrão do WhatsApp.')
             return
         }
 
@@ -78,12 +83,14 @@ export function Contact() {
             })
 
             setContatoSuccessMessage('Dados de contato atualizados com sucesso.')
+            toast.success('Dados de contato atualizados com sucesso.')
         } catch (error) {
-            setContatoErrorMessage(
+            const message =
                 error instanceof Error
                     ? error.message
-                    : 'Não foi possível salvar os dados de contato.',
-            )
+                    : 'Não foi possível salvar os dados de contato.'
+            setContatoErrorMessage(message)
+            toast.error(message)
         } finally {
             setIsSavingContato(false)
         }

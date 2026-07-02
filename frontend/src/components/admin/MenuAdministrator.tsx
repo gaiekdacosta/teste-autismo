@@ -8,6 +8,7 @@ import {
     FiX,
 } from 'react-icons/fi'
 import { Button } from '../ui/Button'
+import { useToast } from '../ui/Toast'
 import {
     createAdministrador,
     deleteAdministrador,
@@ -47,6 +48,7 @@ export function MenuAdministrator() {
     const [isSavingAdministrador, setIsSavingAdministrador] = useState(false)
     const [adminErrorMessage, setAdminErrorMessage] = useState('')
     const [adminSuccessMessage, setAdminSuccessMessage] = useState('')
+    const toast = useToast()
 
     useEffect(() => {
         const controller = new AbortController()
@@ -95,6 +97,7 @@ export function MenuAdministrator() {
 
         if (!emailValue) {
             setAdminErrorMessage('Informe o e-mail do usuário.')
+            toast.error('Informe o e-mail do usuário.')
             return
         }
 
@@ -127,8 +130,11 @@ export function MenuAdministrator() {
             })
             resetAdministradorForm()
             setAdminSuccessMessage('Administrador salvo.')
+            toast.success(`Administrador ${savedAdministrador.email} salvo.`)
         } catch (error) {
-            setAdminErrorMessage(getAdminErrorMessage(error))
+            const message = getAdminErrorMessage(error)
+            setAdminErrorMessage(message)
+            toast.error(message)
         } finally {
             setIsSavingAdministrador(false)
         }
@@ -154,8 +160,11 @@ export function MenuAdministrator() {
             }
 
             setAdminSuccessMessage('Administrador removido.')
+            toast.success(`Administrador ${administrador.email} removido.`)
         } catch (error) {
-            setAdminErrorMessage(getAdminErrorMessage(error))
+            const message = getAdminErrorMessage(error)
+            setAdminErrorMessage(message)
+            toast.error(message)
         }
     }
 
