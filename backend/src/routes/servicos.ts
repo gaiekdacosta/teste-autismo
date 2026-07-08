@@ -7,6 +7,7 @@ import {
   infinitePayWebhookSchema,
   listServicePurchasesSchema,
   listServicesSchema,
+  releaseServicePurchaseSchema,
   updateServiceSchema,
 } from "../schemas/servicos";
 import { ServicosService } from "../services/servicosService";
@@ -90,6 +91,15 @@ export async function servicosRoutes(fastify: FastifyInstance): Promise<void> {
       onRequest: [fastify.authenticate, fastify.requireAdmin],
     },
     async () => servicosService.deleteAllPurchases(),
+  );
+
+  fastify.post<{ Params: { id: string } }>(
+    "/servicos/compras/:id/liberar",
+    {
+      schema: releaseServicePurchaseSchema,
+      onRequest: [fastify.authenticate, fastify.requireAdmin],
+    },
+    async (request) => servicosService.releasePurchase(request.params.id),
   );
 
   fastify.get(

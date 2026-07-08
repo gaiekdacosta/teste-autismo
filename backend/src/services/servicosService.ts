@@ -30,6 +30,7 @@ export type ServicosRepositoryContract = Pick<
   | "updateServicePackage"
   | "listPurchasesByUserId"
   | "createPurchase"
+  | "findPurchaseById"
   | "findPurchaseByOrderNsu"
   | "updatePurchase"
   | "deleteAllPurchases"
@@ -269,6 +270,45 @@ export class ServicosService {
       updatedPurchase,
       payment.paymentStatus,
     );
+
+    return notified
+      ? this.servicosRepository.updatePurchase(updatedPurchase.id, {
+          notified_admin_at: new Date().toISOString(),
+        })
+      : updatedPurchase;
+  }
+
+  /**
+   * Libera o acesso manualmente (uso administrativo). Marca a compra como paga
+   * sem consultar a InfinitePay — usar apenas quando o pagamento ja foi
+   * confirmado por fora (ex.: comprovante de Pix), mas o webhook/redirect nao
+   * atualizou a compra. O acesso e recalculado ao vivo a partir das compras
+   * pagas, entao a liberacao passa a valer imediatamente.
+   */
+  async releasePurchase(purchaseId: string): Promise<ServicePurchase> {
+    const purchase = await this.servicosRepository.findPurchaseById(purchaseId);
+
+    if (!purchase) {
+      throw notFound("Compra de servico nao encontrada.");
+    }
+
+    if (purchase.status === SERVICE_PURCHASE_STATUS.paid) {
+      return purchase;
+    }
+
+    const updatedPurchase = await this.servicosRepository.updatePurchase(
+      purchase.id,
+      {
+        status: SERVICE_PURCHASE_STATUS.paid,
+        capture_method: purchase.capture_method ?? "liberacao_manual",
+      },
+    );
+
+    if (updatedPurchase.notified_admin_at) {
+      return updatedPurchase;
+    }
+
+    const notified = await this.notifyPaidPurchase(updatedPurchase, "paid");
 
     return notified
       ? this.servicosRepository.updatePurchase(updatedPurchase.id, {

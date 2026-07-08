@@ -133,6 +133,49 @@ const usuarioAvaliadoResponseSchema = {
   additionalProperties: false,
 } as const;
 
+const compraResponseSchema = {
+  type: "object",
+  required: [
+    "id",
+    "id_user",
+    "customer_name",
+    "customer_email",
+    "service_id",
+    "service_name",
+    "service_price_cents",
+    "status",
+    "checkout_url",
+    "order_nsu",
+    "invoice_slug",
+    "transaction_nsu",
+    "capture_method",
+    "receipt_url",
+    "notified_admin_at",
+    "created_at",
+    "updated_at",
+  ],
+  properties: {
+    id: { type: "string" },
+    id_user: { type: "string" },
+    customer_name: { type: "string", nullable: true },
+    customer_email: { type: "string", nullable: true },
+    service_id: { type: "string" },
+    service_name: { type: "string" },
+    service_price_cents: { type: "integer" },
+    status: { type: "string" },
+    checkout_url: { type: "string", nullable: true },
+    order_nsu: { type: "string" },
+    invoice_slug: { type: "string", nullable: true },
+    transaction_nsu: { type: "string", nullable: true },
+    capture_method: { type: "string", nullable: true },
+    receipt_url: { type: "string", nullable: true },
+    notified_admin_at: { type: "string", nullable: true },
+    created_at: { type: "string" },
+    updated_at: { type: "string" },
+  },
+  additionalProperties: false,
+} as const;
+
 const usuarioResponseSchema = {
   type: "object",
   required: [
@@ -146,6 +189,7 @@ const usuarioResponseSchema = {
     "last_sign_in_at",
     "avaliados",
     "testes",
+    "compras",
   ],
   properties: {
     id: { type: "string" },
@@ -163,6 +207,10 @@ const usuarioResponseSchema = {
     testes: {
       type: "array",
       items: testeResponseSchema,
+    },
+    compras: {
+      type: "array",
+      items: compraResponseSchema,
     },
   },
   additionalProperties: false,

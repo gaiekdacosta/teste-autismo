@@ -1,3 +1,4 @@
+import type { ServicePurchase } from "./servicos";
 import type { TesteCompleto } from "./testes";
 
 export type UsuarioAvaliado = {
@@ -19,4 +20,5 @@ export type UsuarioSistema = {
   last_sign_in_at: string | null;
   avaliados: UsuarioAvaliado[];
   testes: TesteCompleto[];
+  compras: ServicePurchase[];
 };

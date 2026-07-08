@@ -197,6 +197,14 @@ export const confirmServicePurchaseSchema: FastifySchema = {
   },
 };
 
+export const releaseServicePurchaseSchema: FastifySchema = {
+  params: serviceParamsSchema,
+  response: {
+    200: servicePurchaseSchema,
+    404: messageResponseSchema,
+  },
+};
+
 export const getServiceAccessSchema: FastifySchema = {
   response: {
     200: {

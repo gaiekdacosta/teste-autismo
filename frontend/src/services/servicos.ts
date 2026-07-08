@@ -103,3 +103,9 @@ export function confirmServicePurchase(input: ConfirmServicePurchaseInput) {
     body: input,
   })
 }
+
+export function releaseServicePurchase(purchaseId: string) {
+  return jsonRequest<ServicePurchase>(`/servicos/compras/${purchaseId}/liberar`, {
+    method: 'POST',
+  })
+}

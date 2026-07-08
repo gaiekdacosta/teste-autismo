@@ -6,13 +6,17 @@ import {
     FiMail,
     FiPhone,
     FiSearch,
+    FiShoppingBag,
+    FiUnlock,
     FiUser,
     FiUsers,
 } from 'react-icons/fi'
 
 import { Navbar } from '../../components/Navbar'
 import { Accordeon, type AccordeonItem } from '../../components/ui/Accordeon'
+import { useToast } from '../../components/ui/Toast'
 import { generateTestResultPDF } from '../../services/generatePDF'
+import { releaseServicePurchase, type ServicePurchase } from '../../services/servicos'
 import type { Teste } from '../../services/testes'
 import { listUsuarios, type UsuarioSistema } from '../../services/usuarios'
 
@@ -50,6 +54,28 @@ function formatStatus(status: string) {
     }
 
     return labels[status] ?? status
+}
+
+function formatPriceCents(cents: number) {
+    return (cents / 100).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+    })
+}
+
+function formatPurchaseStatus(status: string) {
+    const labels: Record<string, string> = {
+        paid: 'Pago / Liberado',
+        pending: 'Pendente',
+    }
+
+    return labels[status] ?? status
+}
+
+function getPurchaseStatusStyle(status: string) {
+    if (status === 'paid') return 'border-green-500/30 bg-green-500/15 text-green-300'
+
+    return 'border-yellow-500/30 bg-yellow-500/15 text-yellow-300'
 }
 
 function getTestStatusStyle(status: string) {
@@ -91,6 +117,8 @@ export function UsersPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState('')
     const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null)
+    const [releasingPurchaseId, setReleasingPurchaseId] = useState<string | null>(null)
+    const toast = useToast()
 
     useEffect(() => {
         async function loadUsers() {
@@ -134,6 +162,30 @@ export function UsersPage() {
         setGeneratingPdfId(null)
     }
 
+    const handleReleasePurchase = async (purchase: ServicePurchase) => {
+        try {
+            setReleasingPurchaseId(purchase.id)
+            const updated = await releaseServicePurchase(purchase.id)
+            setUsers((current) =>
+                current.map((user) =>
+                    user.id === updated.id_user
+                        ? {
+                              ...user,
+                              compras: user.compras.map((compra) =>
+                                  compra.id === updated.id ? updated : compra,
+                              ),
+                          }
+                        : user,
+                ),
+            )
+            toast.success('Acesso liberado com sucesso.')
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Erro ao liberar acesso.')
+        } finally {
+            setReleasingPurchaseId(null)
+        }
+    }
+
     const accordeonItems: AccordeonItem[] = filteredUsers.map((user) => ({
         id: user.id,
         header: <UserHeader user={user} />,
@@ -142,6 +194,8 @@ export function UsersPage() {
                 user={user}
                 generatingPdfId={generatingPdfId}
                 onDownloadTest={handleDownloadTest}
+                releasingPurchaseId={releasingPurchaseId}
+                onReleasePurchase={handleReleasePurchase}
             />
         ),
     }))
@@ -264,9 +318,17 @@ type UserDetailsProps = {
     user: UsuarioSistema
     generatingPdfId: string | null
     onDownloadTest: (user: UsuarioSistema, teste: Teste) => void
+    releasingPurchaseId: string | null
+    onReleasePurchase: (purchase: ServicePurchase) => void
 }
 
-function UserDetails({ user, generatingPdfId, onDownloadTest }: UserDetailsProps) {
+function UserDetails({
+    user,
+    generatingPdfId,
+    onDownloadTest,
+    releasingPurchaseId,
+    onReleasePurchase,
+}: UserDetailsProps) {
     const downloadableTests = user.testes.filter(canDownloadTest).length
 
     return (
@@ -310,6 +372,62 @@ function UserDetails({ user, generatingPdfId, onDownloadTest }: UserDetailsProps
                     <DetailRow label="Telefone" value={getText(user.phone)} />
                 </InfoColumn>
             </div>
+
+            <section>
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                        <FiShoppingBag className="h-5 w-5 text-[var(--primary)]" />
+                        <h4 className="font-semibold">Compras e acesso</h4>
+                    </div>
+                    <span className="text-sm text-[var(--muted)]">{user.compras.length} registradas</span>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                    {user.compras.map((compra) => {
+                        const isPaid = compra.status === 'paid'
+                        const isReleasing = releasingPurchaseId === compra.id
+
+                        return (
+                            <article key={compra.id} className={`${panelClassName} p-4`}>
+                                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getPurchaseStatusStyle(compra.status)}`}>
+                                                {formatPurchaseStatus(compra.status)}
+                                            </span>
+                                            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-secondary)] px-3 py-1 text-xs font-semibold text-[var(--muted)]">
+                                                {formatPriceCents(compra.service_price_cents)}
+                                            </span>
+                                        </div>
+                                        <h5 className="mt-3 font-semibold">{compra.service_name}</h5>
+                                        <p className="mt-2 text-sm text-[var(--muted)]">
+                                            Comprado em {formatDateTime(compra.created_at)}
+                                        </p>
+                                    </div>
+
+                                    {!isPaid && (
+                                        <button
+                                            type="button"
+                                            onClick={() => onReleasePurchase(compra)}
+                                            disabled={isReleasing}
+                                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-bold text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50 md:w-auto"
+                                        >
+                                            <FiUnlock className="h-4 w-4" />
+                                            {isReleasing ? 'Liberando...' : 'Liberar acesso'}
+                                        </button>
+                                    )}
+                                </div>
+                            </article>
+                        )
+                    })}
+
+                    {user.compras.length === 0 && (
+                        <div className={`${panelClassName} p-4 text-sm text-[var(--muted)]`}>
+                            Nenhuma compra registrada para este usuário.
+                        </div>
+                    )}
+                </div>
+            </section>
 
             <section>
                 <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

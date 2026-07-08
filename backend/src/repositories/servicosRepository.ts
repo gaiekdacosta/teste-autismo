@@ -166,6 +166,20 @@ export class ServicosRepository {
     return data as ServicePurchase;
   }
 
+  async findPurchaseById(id: string): Promise<ServicePurchase | null> {
+    const { data, error } = await supabaseAdmin
+      .from("compras_servicos")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      throwSupabaseError("buscar compra de servico", error);
+    }
+
+    return data as ServicePurchase | null;
+  }
+
   async findPurchaseByOrderNsu(orderNsu: string): Promise<ServicePurchase | null> {
     const { data, error } = await supabaseAdmin
       .from("compras_servicos")

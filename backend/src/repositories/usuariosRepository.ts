@@ -1,5 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import { supabaseAdmin } from "../lib/supabase";
+import type { ServicePurchase } from "../types/servicos";
 import type { TesteCompleto } from "../types/testes";
 import type { UsuarioAvaliado } from "../types/usuarios";
 
@@ -132,5 +133,21 @@ export class UsuariosRepository {
     }
 
     return (data ?? []).map(mapTesteCompleto);
+  }
+
+  async findComprasByUserIds(userIds: string[]): Promise<ServicePurchase[]> {
+    if (userIds.length === 0) return [];
+
+    const { data, error } = await supabaseAdmin
+      .from("compras_servicos")
+      .select("*")
+      .in("id_user", userIds)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throwSupabaseError("buscar compras dos usuários", error);
+    }
+
+    return (data ?? []) as ServicePurchase[];
   }
 }

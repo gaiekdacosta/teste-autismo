@@ -1,4 +1,5 @@
 import { request } from './api'
+import type { ServicePurchase } from './servicos'
 import type { Teste } from './testes'
 
 export type UsuarioAvaliado = {
@@ -20,6 +21,7 @@ export type UsuarioSistema = {
   last_sign_in_at: string | null
   avaliados: UsuarioAvaliado[]
   testes: Teste[]
+  compras: ServicePurchase[]
 }
 
 export function listUsuarios() {

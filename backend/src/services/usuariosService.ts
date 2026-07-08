@@ -10,7 +10,10 @@ type AuthUserWithRawMetadata = User & {
 
 export type UsuariosRepositoryContract = Pick<
   UsuariosRepository,
-  "findAuthUsers" | "findAvaliadosByUserIds" | "findTestesByUserIds"
+  | "findAuthUsers"
+  | "findAvaliadosByUserIds"
+  | "findTestesByUserIds"
+  | "findComprasByUserIds"
 >;
 
 export class UsuariosService {
@@ -22,13 +25,15 @@ export class UsuariosService {
   async listAll(): Promise<UsuarioSistema[]> {
     const authUsers = await this.usuariosRepository.findAuthUsers();
     const userIds = authUsers.map((user) => user.id);
-    const [avaliados, testes] = await Promise.all([
+    const [avaliados, testes, compras] = await Promise.all([
       this.usuariosRepository.findAvaliadosByUserIds(userIds),
       this.usuariosRepository.findTestesByUserIds(userIds),
+      this.usuariosRepository.findComprasByUserIds(userIds),
     ]);
 
     const avaliadosByUserId = this.groupByUserId(avaliados);
     const testesByUserId = this.groupByUserId(testes);
+    const comprasByUserId = this.groupByUserId(compras);
 
     return authUsers.map((user) => ({
       id: user.id,
@@ -43,6 +48,7 @@ export class UsuariosService {
       last_sign_in_at: user.last_sign_in_at ?? null,
       avaliados: avaliadosByUserId.get(user.id) ?? [],
       testes: testesByUserId.get(user.id) ?? [],
+      compras: comprasByUserId.get(user.id) ?? [],
     }));
   }
 
