@@ -121,6 +121,12 @@ export function updateTeste(id: string, data: Partial<{
   })
 }
 
+export function deleteTeste(id: string) {
+  return request<void>(`/testes/${id}`, {
+    method: 'DELETE',
+  })
+}
+
 export function listAvaliados() {
   return request<Avaliado[]>('/avaliados')
 }

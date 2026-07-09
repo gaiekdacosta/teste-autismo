@@ -150,4 +150,92 @@ export class UsuariosRepository {
 
     return (data ?? []) as ServicePurchase[];
   }
+
+  // Exclui o usuario e todos os dados vinculados. A ordem respeita as chaves
+  // estrangeiras: respostas -> agendamentos -> testes -> avaliados -> conta Auth.
+  // As compras (compras_servicos) caem por cascade ao excluir a conta no Auth.
+  async deleteUserCompletely(userId: string): Promise<void> {
+    const { data: testes, error: testesError } = await supabaseAdmin
+      .from("testes")
+      .select("id")
+      .eq("id_user", userId);
+
+    if (testesError) {
+      throwSupabaseError("buscar testes do usuário", testesError);
+    }
+
+    const testeIds = (testes ?? []).map((teste: { id: string }) => teste.id);
+
+    if (testeIds.length > 0) {
+      const { error } = await supabaseAdmin
+        .from("respostas")
+        .delete()
+        .in("id_teste", testeIds);
+
+      if (error) {
+        throwSupabaseError("excluir respostas do usuário", error);
+      }
+    }
+
+    const { error: agendamentosError } = await supabaseAdmin
+      .from("agendamentos")
+      .delete()
+      .eq("id_user", userId);
+
+    if (agendamentosError) {
+      throwSupabaseError("excluir agendamentos do usuário", agendamentosError);
+    }
+
+    const { error: testesDeleteError } = await supabaseAdmin
+      .from("testes")
+      .delete()
+      .eq("id_user", userId);
+
+    if (testesDeleteError) {
+      throwSupabaseError("excluir testes do usuário", testesDeleteError);
+    }
+
+    const { error: avaliadosError } = await supabaseAdmin
+      .from("avaliados")
+      .delete()
+      .eq("id_user", userId);
+
+    if (avaliadosError) {
+      throwSupabaseError("excluir avaliados do usuário", avaliadosError);
+    }
+
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+    if (authError) {
+      throwSupabaseError("excluir conta do usuário", authError);
+    }
+  }
+
+  async setContatado(
+    userId: string,
+    contatado: boolean,
+    contatadoEm: string | null,
+  ): Promise<User> {
+    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
+      userId,
+      {
+        app_metadata: {
+          contatado,
+          contatado_em: contatadoEm,
+        },
+      },
+    );
+
+    if (error) {
+      throwSupabaseError("atualizar status de contato do usuário", error);
+    }
+
+    if (!data.user) {
+      throwSupabaseError("atualizar status de contato do usuário", {
+        message: "Usuário não encontrado.",
+      });
+    }
+
+    return data.user;
+  }
 }

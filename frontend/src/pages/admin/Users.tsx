@@ -2,11 +2,15 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
     FiAlertCircle,
     FiCheckCircle,
+    FiCheckSquare,
     FiDownload,
     FiMail,
+    FiMessageSquare,
     FiPhone,
     FiSearch,
     FiShoppingBag,
+    FiSquare,
+    FiTrash2,
     FiUnlock,
     FiUser,
     FiUsers,
@@ -17,8 +21,13 @@ import { Accordeon, type AccordeonItem } from '../../components/ui/Accordeon'
 import { useToast } from '../../components/ui/Toast'
 import { generateTestResultPDF } from '../../services/generatePDF'
 import { releaseServicePurchase, type ServicePurchase } from '../../services/servicos'
-import type { Teste } from '../../services/testes'
-import { listUsuarios, type UsuarioSistema } from '../../services/usuarios'
+import { deleteTeste, type Teste } from '../../services/testes'
+import {
+    deleteUsuario,
+    listUsuarios,
+    setUsuarioContatado,
+    type UsuarioSistema,
+} from '../../services/usuarios'
 
 const sectionClassName = 'rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 md:p-6'
 const panelClassName = 'rounded-xl border border-[var(--border)] bg-[var(--surface)]'
@@ -102,6 +111,31 @@ function getWhatsappUrl(phone?: string | null) {
     return `https://wa.me/${number}?text=${message}`
 }
 
+function getWhatsappTemplateUrl(user: UsuarioSistema) {
+    if (!user.phone) return '#'
+
+    const digits = user.phone.replace(/\D/g, '')
+    const number = digits.startsWith('55') ? digits : `55${digits}`
+    const lines = [
+        'Paciente novo teste de autismo:',
+        getUserName(user),
+        ...(user.email ? [user.email] : []),
+        '',
+        `+${number}`,
+    ]
+    const message = encodeURIComponent(lines.join('\n'))
+
+    return `https://wa.me/${number}?text=${message}`
+}
+
+type ContatadoFilter = 'todos' | 'contatados' | 'nao-contatados'
+
+const CONTATADO_FILTER_OPTIONS: { value: ContatadoFilter; label: string }[] = [
+    { value: 'todos', label: 'Todos' },
+    { value: 'nao-contatados', label: 'Não contatados' },
+    { value: 'contatados', label: 'Já contatados' },
+]
+
 function canDownloadTest(teste: Teste) {
     return teste.status === 'concluido'
 }
@@ -114,10 +148,14 @@ export function UsersPage() {
     const [users, setUsers] = useState<UsuarioSistema[]>([])
     const [openUserId, setOpenUserId] = useState('')
     const [search, setSearch] = useState('')
+    const [contatadoFilter, setContatadoFilter] = useState<ContatadoFilter>('todos')
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState('')
     const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null)
     const [releasingPurchaseId, setReleasingPurchaseId] = useState<string | null>(null)
+    const [contatandoUserId, setContatandoUserId] = useState<string | null>(null)
+    const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+    const [deletingTesteId, setDeletingTesteId] = useState<string | null>(null)
     const toast = useToast()
 
     useEffect(() => {
@@ -141,14 +179,17 @@ export function UsersPage() {
     const filteredUsers = useMemo(() => {
         const term = search.trim().toLowerCase()
 
-        if (!term) return users
+        return users.filter((user) => {
+            if (contatadoFilter === 'contatados' && !user.contatado) return false
+            if (contatadoFilter === 'nao-contatados' && user.contatado) return false
 
-        return users.filter((user) =>
-            [user.name, user.email, user.phone, user.id].some((value) =>
+            if (!term) return true
+
+            return [user.name, user.email, user.phone, user.id].some((value) =>
                 getText(value, '').toLowerCase().includes(term),
-            ),
-        )
-    }, [search, users])
+            )
+        })
+    }, [contatadoFilter, search, users])
 
     const handleDownloadTest = (user: UsuarioSistema, teste: Teste) => {
         if (!canDownloadTest(teste)) return
@@ -186,9 +227,81 @@ export function UsersPage() {
         }
     }
 
+    const handleToggleContatado = async (user: UsuarioSistema) => {
+        const next = !user.contatado
+
+        try {
+            setContatandoUserId(user.id)
+            const updated = await setUsuarioContatado(user.id, next)
+            setUsers((current) =>
+                current.map((item) =>
+                    item.id === updated.id
+                        ? { ...item, contatado: updated.contatado, contatado_em: updated.contatado_em }
+                        : item,
+                ),
+            )
+            toast.success(next ? 'Usuário marcado como contatado.' : 'Marcação de contato removida.')
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Erro ao atualizar status de contato.')
+        } finally {
+            setContatandoUserId(null)
+        }
+    }
+
+    const handleDeleteUser = async (user: UsuarioSistema) => {
+        const confirmed = window.confirm(
+            `Excluir o usuário "${getUserName(user)}"?\n\nEsta ação remove a conta e TODOS os dados vinculados (testes, avaliados, compras) e não pode ser desfeita.`,
+        )
+
+        if (!confirmed) return
+
+        try {
+            setDeletingUserId(user.id)
+            await deleteUsuario(user.id)
+            setUsers((current) => current.filter((item) => item.id !== user.id))
+            setOpenUserId((currentId) => (currentId === user.id ? '' : currentId))
+            toast.success('Usuário excluído com sucesso.')
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Erro ao excluir usuário.')
+        } finally {
+            setDeletingUserId(null)
+        }
+    }
+
+    const handleDeleteTeste = async (user: UsuarioSistema, teste: Teste) => {
+        const confirmed = window.confirm(
+            'Excluir este teste (procedimento realizado)?\n\nEsta ação não pode ser desfeita.',
+        )
+
+        if (!confirmed) return
+
+        try {
+            setDeletingTesteId(teste.id)
+            await deleteTeste(teste.id)
+            setUsers((current) =>
+                current.map((item) =>
+                    item.id === user.id
+                        ? { ...item, testes: item.testes.filter((t) => t.id !== teste.id) }
+                        : item,
+                ),
+            )
+            toast.success('Teste excluído com sucesso.')
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Erro ao excluir teste.')
+        } finally {
+            setDeletingTesteId(null)
+        }
+    }
+
     const accordeonItems: AccordeonItem[] = filteredUsers.map((user) => ({
         id: user.id,
-        header: <UserHeader user={user} />,
+        header: (
+            <UserHeader
+                user={user}
+                isSavingContatado={contatandoUserId === user.id}
+                onToggleContatado={handleToggleContatado}
+            />
+        ),
         content: (
             <UserDetails
                 user={user}
@@ -196,6 +309,10 @@ export function UsersPage() {
                 onDownloadTest={handleDownloadTest}
                 releasingPurchaseId={releasingPurchaseId}
                 onReleasePurchase={handleReleasePurchase}
+                deletingUserId={deletingUserId}
+                deletingTesteId={deletingTesteId}
+                onDeleteUser={handleDeleteUser}
+                onDeleteTeste={handleDeleteTeste}
             />
         ),
     }))
@@ -250,6 +367,27 @@ export function UsersPage() {
                             </label>
                         </div>
 
+                        <div className="mb-5 flex flex-wrap items-center gap-2">
+                            {CONTATADO_FILTER_OPTIONS.map((option) => {
+                                const isActive = contatadoFilter === option.value
+
+                                return (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => setContatadoFilter(option.value)}
+                                        className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                                            isActive
+                                                ? 'border-[var(--primary)] bg-[var(--primary)]/15 text-[var(--primary)]'
+                                                : 'border-[var(--border)] bg-[var(--surface-secondary)] text-[var(--muted)] hover:border-[var(--primary)]/50'
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                )
+                            })}
+                        </div>
+
                         {isLoading && (
                             <div className={`${panelClassName} p-4 text-sm text-[var(--muted)]`}>
                                 Carregando usuários...
@@ -280,9 +418,11 @@ export function UsersPage() {
 
 type UserHeaderProps = {
     user: UsuarioSistema
+    isSavingContatado: boolean
+    onToggleContatado: (user: UsuarioSistema) => void
 }
 
-function UserHeader({ user }: UserHeaderProps) {
+function UserHeader({ user, isSavingContatado, onToggleContatado }: UserHeaderProps) {
     const completedTests = user.testes.filter((teste) => teste.status === 'concluido').length
 
     return (
@@ -302,7 +442,12 @@ function UserHeader({ user }: UserHeaderProps) {
                 </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 text-xs font-semibold text-[var(--muted)]">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--muted)]">
+                <ContatadoCheckbox
+                    contatado={user.contatado}
+                    isSaving={isSavingContatado}
+                    onToggle={() => onToggleContatado(user)}
+                />
                 <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1">
                     {completedTests}/{user.testes.length} testes concluídos
                 </span>
@@ -314,12 +459,55 @@ function UserHeader({ user }: UserHeaderProps) {
     )
 }
 
+type ContatadoCheckboxProps = {
+    contatado: boolean
+    isSaving: boolean
+    onToggle: () => void
+}
+
+// Renderizado dentro do botão do acordeão, entao usamos um <span role="checkbox">
+// (span e conteudo valido dentro de <button>) e paramos a propagacao do clique
+// para alternar o status sem expandir/recolher o item.
+function ContatadoCheckbox({ contatado, isSaving, onToggle }: ContatadoCheckboxProps) {
+    const handle = (event: { stopPropagation: () => void; preventDefault: () => void }) => {
+        event.stopPropagation()
+        event.preventDefault()
+        if (!isSaving) onToggle()
+    }
+
+    return (
+        <span
+            role="checkbox"
+            aria-checked={contatado}
+            aria-label="Já contatado"
+            aria-busy={isSaving}
+            tabIndex={0}
+            onClick={handle}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') handle(event)
+            }}
+            className={`inline-flex cursor-pointer select-none items-center gap-2 rounded-full border px-3 py-1 transition ${
+                contatado
+                    ? 'border-green-500/30 bg-green-500/15 text-green-300'
+                    : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]/50'
+            } ${isSaving ? 'pointer-events-none opacity-60' : ''}`}
+        >
+            {contatado ? <FiCheckSquare className="h-4 w-4" /> : <FiSquare className="h-4 w-4" />}
+            {contatado ? 'Já contatado' : 'Marcar contatado'}
+        </span>
+    )
+}
+
 type UserDetailsProps = {
     user: UsuarioSistema
     generatingPdfId: string | null
     onDownloadTest: (user: UsuarioSistema, teste: Teste) => void
     releasingPurchaseId: string | null
     onReleasePurchase: (purchase: ServicePurchase) => void
+    deletingUserId: string | null
+    deletingTesteId: string | null
+    onDeleteUser: (user: UsuarioSistema) => void
+    onDeleteTeste: (user: UsuarioSistema, teste: Teste) => void
 }
 
 function UserDetails({
@@ -328,6 +516,10 @@ function UserDetails({
     onDownloadTest,
     releasingPurchaseId,
     onReleasePurchase,
+    deletingUserId,
+    deletingTesteId,
+    onDeleteUser,
+    onDeleteTeste,
 }: UserDetailsProps) {
     const downloadableTests = user.testes.filter(canDownloadTest).length
 
@@ -351,6 +543,16 @@ function UserDetails({
                 >
                     <FiPhone className="h-4 w-4" />
                     Número
+                </a>
+                <a
+                    href={getWhatsappTemplateUrl(user)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold transition hover:border-[var(--primary)]/50 aria-disabled:pointer-events-none aria-disabled:opacity-50"
+                    aria-disabled={!user.phone}
+                >
+                    <FiMessageSquare className="h-4 w-4" />
+                    Mensagem padrão
                 </a>
             </div>
 
@@ -465,15 +667,26 @@ function UserDetails({
                                     </p>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    onClick={() => onDownloadTest(user, teste)}
-                                    disabled={!canDownloadTest(teste) || generatingPdfId === teste.id}
-                                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-bold text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50 md:w-auto"
-                                >
-                                    <FiDownload className="h-4 w-4" />
-                                    {generatingPdfId === teste.id ? 'Gerando PDF...' : 'Baixar teste'}
-                                </button>
+                                <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row">
+                                    <button
+                                        type="button"
+                                        onClick={() => onDownloadTest(user, teste)}
+                                        disabled={!canDownloadTest(teste) || generatingPdfId === teste.id}
+                                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-3 text-sm font-bold text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50 md:w-auto"
+                                    >
+                                        <FiDownload className="h-4 w-4" />
+                                        {generatingPdfId === teste.id ? 'Gerando PDF...' : 'Baixar teste'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => onDeleteTeste(user, teste)}
+                                        disabled={deletingTesteId === teste.id}
+                                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50 md:w-auto"
+                                    >
+                                        <FiTrash2 className="h-4 w-4" />
+                                        {deletingTesteId === teste.id ? 'Excluindo...' : 'Excluir'}
+                                    </button>
+                                </div>
                             </div>
                         </article>
                     ))}
@@ -483,6 +696,26 @@ function UserDetails({
                             Nenhum teste encontrado para este usuário.
                         </div>
                     )}
+                </div>
+            </section>
+
+            <section className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                        <h4 className="font-semibold text-red-300">Excluir usuário</h4>
+                        <p className="mt-1 text-sm text-[var(--muted)]">
+                            Remove a conta e todos os dados vinculados (testes, avaliados, compras). Ação irreversível.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => onDeleteUser(user)}
+                        disabled={deletingUserId === user.id}
+                        className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                    >
+                        <FiTrash2 className="h-4 w-4" />
+                        {deletingUserId === user.id ? 'Excluindo...' : 'Excluir usuário'}
+                    </button>
                 </div>
             </section>
         </div>

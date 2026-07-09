@@ -5,6 +5,7 @@ import {
   createAvaliadoSchema,
   createContatoSchema,
   createTesteSchema,
+  deleteTesteSchema,
   getAvaliadoSchema,
   getContatoSchema,
   getTesteSchema,
@@ -127,6 +128,19 @@ export async function testesRoutes(fastify: FastifyInstance): Promise<void> {
         throw new Error("Unauthorized");
       }
       return testesService.update(request.params.id, request.body, userId);
+    },
+  );
+
+  // Exclusao de teste (procedimento) — restrita a administradores.
+  fastify.delete<{ Params: TesteParams }>(
+    "/testes/:id",
+    {
+      schema: deleteTesteSchema,
+      onRequest: [fastify.authenticate, fastify.requireAdmin],
+    },
+    async (request, reply) => {
+      await testesService.adminDelete(request.params.id);
+      return reply.status(204).send();
     },
   );
 

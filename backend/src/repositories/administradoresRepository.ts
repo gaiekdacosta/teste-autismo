@@ -65,6 +65,23 @@ export class AdministradoresRepository {
     return data as Administrador | null;
   }
 
+  // Verifica se existe QUALQUER vinculo de administrador (ativo ou nao) para o
+  // usuario. A FK administradores.id_user -> auth.users e NO ACTION, entao
+  // excluir a conta no Auth falha enquanto essa linha existir.
+  async existsByUserId(userId: string): Promise<boolean> {
+    const { data, error } = await supabaseAdmin
+      .from("administradores")
+      .select("id")
+      .eq("id_user", userId)
+      .maybeSingle();
+
+    if (error) {
+      throwSupabaseError("verificar administrador do usuário", error);
+    }
+
+    return Boolean(data);
+  }
+
   async findAuthUserByEmail(email: string): Promise<User | null> {
     const normalizedEmail = email.trim().toLowerCase();
     const perPage = 1000;

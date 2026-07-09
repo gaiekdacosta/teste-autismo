@@ -34,8 +34,6 @@ import {
   getCachedAdminAccess,
 } from './services/administradores'
 
-import { notifyCurrentUserRegistration } from './services/auth'
-
 function persistAuthSession(session: Session | null) {
   if (!session?.access_token) {
     localStorage.removeItem('auth.session')
@@ -269,24 +267,6 @@ function App() {
     isAuthLoading,
     adminCheckVersion,
     hasAdminAccess,
-  ])
-
-  useEffect(() => {
-    if (
-      isAuthLoading ||
-      !isAuthenticated
-    )
-      return
-
-    void notifyCurrentUserRegistration().catch(
-      () => {
-        // A notificacao nao deve bloquear o acesso do usuario.
-      },
-    )
-  }, [
-    isAuthenticated,
-    isAuthLoading,
-    adminCheckVersion,
   ])
 
   return (

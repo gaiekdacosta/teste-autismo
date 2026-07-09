@@ -145,12 +145,6 @@ export async function registerWithPassword(credentials: RegisterCredentials) {
   return response
 }
 
-export async function notifyCurrentUserRegistration() {
-  return jsonRequest<{ notified: boolean }>('/auth/notify-new-user', {
-    method: 'POST',
-  })
-}
-
 export async function verifyPhoneChange(credentials: VerifyPhoneChangeCredentials) {
   const { data, error } = await supabase.auth.verifyOtp({
     phone: credentials.phone,

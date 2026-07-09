@@ -57,16 +57,3 @@ export const registerSchema: FastifySchema = {
     400: messageResponseSchema,
   },
 };
-
-export const notifyCurrentUserSchema: FastifySchema = {
-  response: {
-    200: {
-      type: "object",
-      required: ["notified"],
-      properties: {
-        notified: { type: "boolean" },
-      },
-      additionalProperties: false,
-    },
-  },
-};

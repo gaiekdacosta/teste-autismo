@@ -21,4 +21,6 @@ export type UsuarioSistema = {
   avaliados: UsuarioAvaliado[];
   testes: TesteCompleto[];
   compras: ServicePurchase[];
+  contatado: boolean;
+  contatado_em: string | null;
 };

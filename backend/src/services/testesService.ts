@@ -176,6 +176,18 @@ export class TestesService {
     await this.testesRepository.deleteById(id);
   }
 
+  // Exclusao administrativa: remove qualquer teste, independentemente do dono.
+  // As respostas caem por cascade (FK respostas -> testes on delete cascade).
+  async adminDelete(id: string): Promise<void> {
+    const teste = await this.testesRepository.findCompleteById(id);
+
+    if (!teste) {
+      throw notFound("Teste não encontrado.");
+    }
+
+    await this.testesRepository.deleteById(id);
+  }
+
   async listAvaliados(userId: string): Promise<Avaliado[]> {
     return this.testesRepository.findAvaliadosByUserId(userId);
   }

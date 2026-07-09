@@ -1,7 +1,6 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { badRequest } from "../errors/AppError";
-import { supabaseAdmin, supabaseAnon } from "../lib/supabase";
-import { EmailService } from "./emailService";
+import { supabaseAnon } from "../lib/supabase";
 
 export type AuthTokens = {
   accessToken: string;
@@ -28,8 +27,6 @@ export type LoginResponse = {
   tokens?: AuthTokens;
   user?: AuthUser;
 };
-
-const USER_NOTIFICATION_METADATA_KEY = "admin_new_user_notified_at";
 
 function mapAuthError(message: string): string {
   const errors: Record<string, string> = {
@@ -82,8 +79,6 @@ function mapSession(session?: Session | null): LoginResponse {
 }
 
 export class AuthService {
-  constructor(private readonly emailService = new EmailService()) {}
-
   async registerWithPassword(input: RegisterCredentials): Promise<LoginResponse> {
     const { data, error } = await supabaseAnon.auth.signUp({
       email: input.email,
@@ -100,37 +95,6 @@ export class AuthService {
       throw badRequest(mapAuthError(error.message));
     }
 
-    if (data.user) {
-      await this.notifyNewUserIfNeeded(data.user);
-    }
-
     return mapSession(data.session);
-  }
-
-  async notifyNewUserIfNeeded(user: User): Promise<{ notified: boolean }> {
-    const alreadyNotified = user.app_metadata?.[USER_NOTIFICATION_METADATA_KEY];
-
-    if (typeof alreadyNotified === "string" && alreadyNotified.length > 0) {
-      return { notified: false };
-    }
-
-    const notified = await this.emailService.notifyNewUser({
-      id: user.id,
-      name: getMetadataValue(user, "name") ?? getMetadataValue(user, "full_name"),
-      email: user.email ?? getMetadataValue(user, "email"),
-      phone: user.phone ?? getMetadataValue(user, "phone"),
-      createdAt: user.created_at,
-    });
-
-    if (notified) {
-      await supabaseAdmin.auth.admin.updateUserById(user.id, {
-        app_metadata: {
-          ...user.app_metadata,
-          [USER_NOTIFICATION_METADATA_KEY]: new Date().toISOString(),
-        },
-      });
-    }
-
-    return { notified };
   }
 }

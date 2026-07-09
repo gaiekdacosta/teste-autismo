@@ -1,13 +1,3 @@
-type EmailTemplateParams = Record<string, string | number | null | undefined>;
-
-type NotifyNewUserInput = {
-  id: string;
-  name?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  createdAt?: string | null;
-};
-
 type NotifyServicePurchaseInput = {
   customerName?: string | null;
   customerEmail?: string | null;
@@ -69,56 +59,6 @@ export class EmailService {
   private readonly apiKey = getEnv("RESEND_API_KEY");
   private readonly fromEmail = getEnv("RESEND_FROM_EMAIL") ?? "onboarding@resend.dev";
   private readonly adminEmail = getEnv("ADMIN_NOTIFICATION_EMAIL");
-
-  async notifyNewUser(input: NotifyNewUserInput): Promise<boolean> {
-    if (!this.adminEmail) {
-      console.warn("[EmailService] ADMIN_NOTIFICATION_EMAIL is not configured.");
-      return false;
-    }
-
-    const title = "Novo Usuário Cadastrado";
-    const name = getOptionalText(input.name);
-    const email = getOptionalText(input.email);
-    const phone = getOptionalText(input.phone);
-    const id = input.id;
-    const date = input.createdAt ? new Date(input.createdAt).toLocaleString("pt-BR") : "Não informado";
-
-    const contentHtml = `
-      <p style="font-family: sans-serif; font-size: 16px; color: #f5f5f5; margin-bottom: 12px;">Olá,</p>
-      <p style="font-family: sans-serif; font-size: 16px; color: #9ca3af; margin-bottom: 24px;">Um novo usuário se cadastrou no sistema. Veja os detalhes da conta abaixo:</p>
-      
-      <table cellpadding="0" cellspacing="0" width="100%" style="background-color: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 20px; margin: 20px 0; border-collapse: separate;">
-        <tr>
-          <td colspan="2" style="font-size: 16px; font-weight: 600; padding-bottom: 12px; color: #ffffff; font-family: sans-serif;">
-            Dados do Usuário
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #9ca3af; font-size: 14px; font-family: sans-serif;"><strong>ID:</strong></td>
-          <td style="padding: 6px 0; color: #f5f5f5; font-size: 14px; font-family: sans-serif; text-align: right;">${id}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #9ca3af; font-size: 14px; font-family: sans-serif;"><strong>Nome:</strong></td>
-          <td style="padding: 6px 0; color: #f5f5f5; font-size: 14px; font-family: sans-serif; text-align: right;">${name}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #9ca3af; font-size: 14px; font-family: sans-serif;"><strong>E-mail:</strong></td>
-          <td style="padding: 6px 0; color: #f5f5f5; font-size: 14px; font-family: sans-serif; text-align: right;">${email}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #9ca3af; font-size: 14px; font-family: sans-serif;"><strong>Telefone:</strong></td>
-          <td style="padding: 6px 0; color: #f5f5f5; font-size: 14px; font-family: sans-serif; text-align: right;">${phone}</td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0; color: #9ca3af; font-size: 14px; font-family: sans-serif;"><strong>Data de Cadastro:</strong></td>
-          <td style="padding: 6px 0; color: #f5f5f5; font-size: 14px; font-family: sans-serif; text-align: right;">${date}</td>
-        </tr>
-      </table>
-    `;
-
-    const html = getEmailWrapper(title, contentHtml);
-    return this.sendEmail(this.adminEmail, title, html);
-  }
 
   async notifyServicePurchase(
     input: NotifyServicePurchaseInput,

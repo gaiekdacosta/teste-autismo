@@ -1,4 +1,6 @@
 import type { User } from "@supabase/supabase-js";
+import { badRequest } from "../errors/AppError";
+import { AdministradoresRepository } from "../repositories/administradoresRepository";
 import { UsuariosRepository } from "../repositories/usuariosRepository";
 import type { TesteCompleto } from "../types/testes";
 import type { UsuarioAvaliado, UsuarioSistema } from "../types/usuarios";
@@ -14,12 +16,24 @@ export type UsuariosRepositoryContract = Pick<
   | "findAvaliadosByUserIds"
   | "findTestesByUserIds"
   | "findComprasByUserIds"
+  | "setContatado"
+  | "deleteUserCompletely"
 >;
+
+export type ContatadoStatus = {
+  id: string;
+  contatado: boolean;
+  contatado_em: string | null;
+};
 
 export class UsuariosService {
   constructor(
     private readonly usuariosRepository: UsuariosRepositoryContract =
       new UsuariosRepository(),
+    private readonly administradoresRepository: Pick<
+      AdministradoresRepository,
+      "existsByUserId"
+    > = new AdministradoresRepository(),
   ) {}
 
   async listAll(): Promise<UsuarioSistema[]> {
@@ -49,7 +63,58 @@ export class UsuariosService {
       avaliados: avaliadosByUserId.get(user.id) ?? [],
       testes: testesByUserId.get(user.id) ?? [],
       compras: comprasByUserId.get(user.id) ?? [],
+      ...this.readContatado(user),
     }));
+  }
+
+  async setContatado(
+    userId: string,
+    contatado: boolean,
+  ): Promise<ContatadoStatus> {
+    const contatadoEm = contatado ? new Date().toISOString() : null;
+    const updated = await this.usuariosRepository.setContatado(
+      userId,
+      contatado,
+      contatadoEm,
+    );
+
+    return { id: updated.id, ...this.readContatado(updated) };
+  }
+
+  async deleteUser(userId: string, requesterId: string): Promise<void> {
+    if (userId === requesterId) {
+      throw badRequest("Você não pode excluir a própria conta.");
+    }
+
+    // A FK administradores.id_user -> auth.users e NO ACTION: excluir a conta
+    // de um administrador falharia por violacao de FK. Bloqueamos com uma
+    // mensagem clara — o acesso de admin deve ser removido antes.
+    const isAdministrador =
+      await this.administradoresRepository.existsByUserId(userId);
+
+    if (isAdministrador) {
+      throw badRequest(
+        "Este usuário é um administrador. Remova o acesso de administrador antes de excluí-lo.",
+      );
+    }
+
+    await this.usuariosRepository.deleteUserCompletely(userId);
+  }
+
+  private readContatado(user: User): {
+    contatado: boolean;
+    contatado_em: string | null;
+  } {
+    const appMetadata = (user.app_metadata ?? {}) as Record<string, unknown>;
+    const contatadoEm = appMetadata.contatado_em;
+
+    return {
+      contatado: appMetadata.contatado === true,
+      contatado_em:
+        typeof contatadoEm === "string" && contatadoEm.trim().length > 0
+          ? contatadoEm
+          : null,
+    };
   }
 
   private groupByUserId<T extends { id_user: string }>(items: T[]): Map<string, T[]> {

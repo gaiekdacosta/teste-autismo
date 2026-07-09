@@ -257,6 +257,14 @@ export const listTestesSchema: FastifySchema = {
   },
 };
 
+export const deleteTesteSchema: FastifySchema = {
+  params: idParamsSchema,
+  response: {
+    204: { type: "null" },
+    404: messageResponseSchema,
+  },
+};
+
 export const createAvaliadoSchema: FastifySchema = {
   body: {
     type: "object",

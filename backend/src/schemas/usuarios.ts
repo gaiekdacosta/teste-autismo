@@ -190,6 +190,8 @@ const usuarioResponseSchema = {
     "avaliados",
     "testes",
     "compras",
+    "contatado",
+    "contatado_em",
   ],
   properties: {
     id: { type: "string" },
@@ -212,6 +214,8 @@ const usuarioResponseSchema = {
       type: "array",
       items: compraResponseSchema,
     },
+    contatado: { type: "boolean" },
+    contatado_em: { type: "string", nullable: true },
   },
   additionalProperties: false,
 } as const;
@@ -221,6 +225,59 @@ export const listUsuariosSchema: FastifySchema = {
     200: {
       type: "array",
       items: usuarioResponseSchema,
+    },
+  },
+};
+
+export const deleteUsuarioSchema: FastifySchema = {
+  params: {
+    type: "object",
+    required: ["id"],
+    properties: {
+      id: { type: "string", minLength: 1 },
+    },
+    additionalProperties: false,
+  },
+  response: {
+    204: { type: "null" },
+    400: {
+      type: "object",
+      required: ["message"],
+      properties: {
+        message: { type: "string" },
+      },
+      additionalProperties: false,
+    },
+  },
+};
+
+export const updateContatadoSchema: FastifySchema = {
+  params: {
+    type: "object",
+    required: ["id"],
+    properties: {
+      id: { type: "string", minLength: 1 },
+    },
+    additionalProperties: false,
+  },
+  body: {
+    type: "object",
+    required: ["contatado"],
+    properties: {
+      contatado: { type: "boolean" },
+    },
+    additionalProperties: false,
+  },
+  response: {
+    200: {
+      type: "object",
+      required: ["id", "contatado", "contatado_em"],
+      properties: {
+        id: { type: "string" },
+        contatado: { type: "boolean" },
+        contatado_em: { type: "string", nullable: true },
+      },
+      additionalProperties: false,
     },
   },
 };
