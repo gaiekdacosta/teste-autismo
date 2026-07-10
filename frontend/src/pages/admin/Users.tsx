@@ -21,7 +21,7 @@ import { Accordeon, type AccordeonItem } from '../../components/ui/Accordeon'
 import { useToast } from '../../components/ui/Toast'
 import { generateTestResultPDF } from '../../services/generatePDF'
 import { releaseServicePurchase, type ServicePurchase } from '../../services/servicos'
-import { deleteTeste, type Teste } from '../../services/testes'
+import { deleteTeste, getContato, type Teste } from '../../services/testes'
 import {
     deleteUsuario,
     listUsuarios,
@@ -111,21 +111,24 @@ function getWhatsappUrl(phone?: string | null) {
     return `https://wa.me/${number}?text=${message}`
 }
 
-function getWhatsappTemplateUrl(user: UsuarioSistema) {
-    if (!user.phone) return '#'
+function formatPhoneDigits(phone: string) {
+    const digits = phone.replace(/\D/g, '')
+    return digits.startsWith('55') ? digits : `55${digits}`
+}
 
-    const digits = user.phone.replace(/\D/g, '')
-    const number = digits.startsWith('55') ? digits : `55${digits}`
+// Abre o WhatsApp apontando para o SEU numero (o configurado em Admin > Contato),
+// com os dados do paciente no corpo — funciona como um alerta para voce mesmo.
+function getAlertWhatsappUrl(user: UsuarioSistema, destinoWhatsapp: string) {
+    const destino = formatPhoneDigits(destinoWhatsapp)
     const lines = [
         'Paciente novo teste de autismo:',
         getUserName(user),
         ...(user.email ? [user.email] : []),
-        '',
-        `+${number}`,
+        ...(user.phone ? ['', `+${formatPhoneDigits(user.phone)}`] : []),
     ]
     const message = encodeURIComponent(lines.join('\n'))
 
-    return `https://wa.me/${number}?text=${message}`
+    return `https://wa.me/${destino}?text=${message}`
 }
 
 type ContatadoFilter = 'todos' | 'contatados' | 'nao-contatados'
@@ -156,6 +159,7 @@ export function UsersPage() {
     const [contatandoUserId, setContatandoUserId] = useState<string | null>(null)
     const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
     const [deletingTesteId, setDeletingTesteId] = useState<string | null>(null)
+    const [contatoWhatsapp, setContatoWhatsapp] = useState<string | null>(null)
     const toast = useToast()
 
     useEffect(() => {
@@ -174,6 +178,12 @@ export function UsersPage() {
         }
 
         loadUsers()
+    }, [])
+
+    useEffect(() => {
+        getContato()
+            .then((data) => setContatoWhatsapp(data?.whatsapp?.trim() || null))
+            .catch(() => setContatoWhatsapp(null))
     }, [])
 
     const filteredUsers = useMemo(() => {
@@ -305,6 +315,7 @@ export function UsersPage() {
         content: (
             <UserDetails
                 user={user}
+                contatoWhatsapp={contatoWhatsapp}
                 generatingPdfId={generatingPdfId}
                 onDownloadTest={handleDownloadTest}
                 releasingPurchaseId={releasingPurchaseId}
@@ -500,6 +511,7 @@ function ContatadoCheckbox({ contatado, isSaving, onToggle }: ContatadoCheckboxP
 
 type UserDetailsProps = {
     user: UsuarioSistema
+    contatoWhatsapp: string | null
     generatingPdfId: string | null
     onDownloadTest: (user: UsuarioSistema, teste: Teste) => void
     releasingPurchaseId: string | null
@@ -512,6 +524,7 @@ type UserDetailsProps = {
 
 function UserDetails({
     user,
+    contatoWhatsapp,
     generatingPdfId,
     onDownloadTest,
     releasingPurchaseId,
@@ -545,11 +558,12 @@ function UserDetails({
                     Número
                 </a>
                 <a
-                    href={getWhatsappTemplateUrl(user)}
+                    href={contatoWhatsapp ? getAlertWhatsappUrl(user, contatoWhatsapp) : '#'}
                     target="_blank"
                     rel="noreferrer"
+                    title={contatoWhatsapp ? undefined : 'Configure o WhatsApp em Admin > Contato'}
                     className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold transition hover:border-[var(--primary)]/50 aria-disabled:pointer-events-none aria-disabled:opacity-50"
-                    aria-disabled={!user.phone}
+                    aria-disabled={!contatoWhatsapp}
                 >
                     <FiMessageSquare className="h-4 w-4" />
                     Mensagem padrão
