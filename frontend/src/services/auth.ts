@@ -95,13 +95,19 @@ function persistSession(response: LoginResponse) {
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(response))
 }
 
-async function syncUserPhoneToProvider(user?: User | null) {
-  const phone = user?.phone ?? getMetadataValue(user as User, 'phone')
+// Garante que o telefone fique disponível em user_metadata (fonte de verdade
+// do app). Não grava no campo nativo auth.users.phone para não disparar a
+// verificação por SMS/OTP do Supabase.
+async function ensurePhoneInMetadata(user?: User | null) {
+  if (!user) return
 
-  if (!user || !phone || user.phone === phone) return
+  const metadataPhone = getMetadataValue(user, 'phone')
+  const phone = metadataPhone ?? user.phone
+
+  // Nada a sincronizar, ou o metadata já está preenchido.
+  if (!phone || metadataPhone === phone) return
 
   const { error } = await supabase.auth.updateUser({
-    phone,
     data: {
       ...user.user_metadata,
       phone,
@@ -119,7 +125,7 @@ export async function loginWithPassword(credentials: LoginCredentials) {
 
   if (error) throw new Error(mapAuthError(error.message))
 
-  await syncUserPhoneToProvider(data.session?.user)
+  await ensurePhoneInMetadata(data.session?.user)
 
   const response = await getFreshSession()
   persistSession(response)
@@ -224,9 +230,11 @@ export async function updateUserProfile(updates: {
 
   const currentMetadata = currentUserData.user?.user_metadata ?? {}
 
+  // O telefone vive apenas em user_metadata (não no campo nativo) para não
+  // disparar a verificação por SMS/OTP do Supabase. O e-mail continua sendo
+  // atualizado no campo nativo, pois é uma operação de auth legítima.
   const { error } = await supabase.auth.updateUser({
     email: updates.email,
-    phone: updates.phone,
     data: {
       ...currentMetadata,
       ...updates,

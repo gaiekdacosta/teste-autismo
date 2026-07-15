@@ -18,6 +18,7 @@ import { PackagesPage } from './pages/Packages'
 import { supabase } from './utils/supabase'
 
 import { ConfigPage } from './pages/Config'
+import { CompleteProfilePage } from './pages/CompleteProfile'
 import { MyTestsPage } from './pages/MyTests'
 import { SchedulingPage } from './pages/Scheduling'
 import { QuestionnairePage } from './pages/Questionnaire'
@@ -65,6 +66,14 @@ function persistAuthSession(session: Session | null) {
   )
 }
 
+function sessionHasPhone(session: Session | null) {
+  const user = session?.user
+  if (!user) return false
+
+  const phone = user.user_metadata?.phone || user.phone
+  return typeof phone === 'string' && phone.trim().length > 0
+}
+
 type ProtectedRouteProps = {
   isAuthenticated: boolean
   isLoading: boolean
@@ -94,6 +103,18 @@ function ProtectedRoute({
         }}
       />
     )
+  }
+
+  return <Outlet />
+}
+
+type RequirePhoneProps = {
+  hasPhone: boolean
+}
+
+function RequirePhone({ hasPhone }: RequirePhoneProps) {
+  if (!hasPhone) {
+    return <Navigate to="/completar-cadastro" replace />
   }
 
   return <Outlet />
@@ -130,6 +151,8 @@ function App() {
   const [isAuthLoading, setIsAuthLoading] =
     useState(true)
 
+  const [hasPhone, setHasPhone] = useState(false)
+
   const cachedAdminAccess =
     getCachedAdminAccess() === true
 
@@ -151,6 +174,7 @@ function App() {
 
         if (!session?.access_token) {
           setIsAuthenticated(false)
+          setHasPhone(false)
           setHasAdminAccess(false)
           setIsAdminLoading(false)
 
@@ -158,6 +182,7 @@ function App() {
         }
 
         setIsAuthenticated(true)
+        setHasPhone(sessionHasPhone(session))
 
         setHasAdminAccess(
           getCachedAdminAccess() === true,
@@ -181,12 +206,14 @@ function App() {
 
         if (error || !data.session) {
           setIsAuthenticated(false)
+          setHasPhone(false)
           setHasAdminAccess(false)
           setIsAdminLoading(false)
 
           persistAuthSession(null)
         } else {
           setIsAuthenticated(true)
+          setHasPhone(sessionHasPhone(data.session))
 
           setHasAdminAccess(
             getCachedAdminAccess() === true,
@@ -210,6 +237,7 @@ function App() {
         )
 
         setIsAuthenticated(false)
+        setHasPhone(false)
         setHasAdminAccess(false)
         setIsAdminLoading(false)
 
@@ -309,62 +337,77 @@ function App() {
           }
         >
           <Route
-            path="/config"
-            element={<ConfigPage />}
-          />
-
-          <Route
-            path="/home"
-            element={<Home />}
-          />
-
-          <Route
-            path="/nossos-servicos"
-            element={<OurServices />}
-          />
-
-          <Route
-            path="/checkout/retorno"
-            element={<CheckoutReturnPage />}
-          />
-
-          <Route
-            path="/meus-testes"
-            element={<MyTestsPage />}
-          />
-
-          <Route
-            path="/meus-agendamentos"
-            element={<SchedulingPage />}
-          />
-
-          <Route
-            path="/questionario"
-            element={<QuestionnairePage />}
-          />
-
-          <Route
+            path="/completar-cadastro"
             element={
-              <AdminRoute
-                hasAdminAccess={
-                  hasAdminAccess
-                }
-                isLoading={
-                  isAdminLoading &&
-                  !hasAdminAccess
-                }
-              />
+              hasPhone ? (
+                <Navigate to="/home" replace />
+              ) : (
+                <CompleteProfilePage />
+              )
             }
+          />
+
+          <Route
+            element={<RequirePhone hasPhone={hasPhone} />}
           >
             <Route
-              path="/admin"
-              element={<AdminPage />}
+              path="/config"
+              element={<ConfigPage />}
             />
 
             <Route
-              path="/users"
-              element={<UsersPage />}
+              path="/home"
+              element={<Home />}
             />
+
+            <Route
+              path="/nossos-servicos"
+              element={<OurServices />}
+            />
+
+            <Route
+              path="/checkout/retorno"
+              element={<CheckoutReturnPage />}
+            />
+
+            <Route
+              path="/meus-testes"
+              element={<MyTestsPage />}
+            />
+
+            <Route
+              path="/meus-agendamentos"
+              element={<SchedulingPage />}
+            />
+
+            <Route
+              path="/questionario"
+              element={<QuestionnairePage />}
+            />
+
+            <Route
+              element={
+                <AdminRoute
+                  hasAdminAccess={
+                    hasAdminAccess
+                  }
+                  isLoading={
+                    isAdminLoading &&
+                    !hasAdminAccess
+                  }
+                />
+              }
+            >
+              <Route
+                path="/admin"
+                element={<AdminPage />}
+              />
+
+              <Route
+                path="/users"
+                element={<UsersPage />}
+              />
+            </Route>
           </Route>
         </Route>
 
