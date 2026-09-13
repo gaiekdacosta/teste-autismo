@@ -111,6 +111,18 @@ function getWhatsappUrl(phone?: string | null) {
     return `https://wa.me/${number}?text=${message}`
 }
 
+// Numero em formato legivel para exibir no cabecalho do card: (11) 91234-5678
+function formatPhoneDisplay(phone?: string | null) {
+    const digits = (phone ?? '').replace(/\D/g, '')
+    if (!digits) return null
+
+    const local = digits.startsWith('55') ? digits.slice(2) : digits
+    if (local.length === 11) return `(${local.slice(0, 2)}) ${local.slice(2, 7)}-${local.slice(7)}`
+    if (local.length === 10) return `(${local.slice(0, 2)}) ${local.slice(2, 6)}-${local.slice(6)}`
+
+    return phone?.trim() || null
+}
+
 function formatPhoneDigits(phone: string) {
     const digits = phone.replace(/\D/g, '')
     return digits.startsWith('55') ? digits : `55${digits}`
@@ -435,6 +447,7 @@ type UserHeaderProps = {
 
 function UserHeader({ user, isSavingContatado, onToggleContatado }: UserHeaderProps) {
     const completedTests = user.testes.filter((teste) => teste.status === 'concluido').length
+    const whatsapp = formatPhoneDisplay(user.phone)
 
     return (
         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -449,6 +462,12 @@ function UserHeader({ user, isSavingContatado, onToggleContatado }: UserHeaderPr
                             {user.last_sign_in_at ? 'Ativo' : 'Sem acesso recente'}
                         </span>
                     </div>
+                    {whatsapp && (
+                        <p className="mt-1 flex items-center gap-1.5 truncate text-sm font-medium text-green-300">
+                            <FiPhone className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{whatsapp}</span>
+                        </p>
+                    )}
                     <p className="mt-1 truncate text-sm text-[var(--muted)]">{getText(user.email)}</p>
                 </div>
             </div>
